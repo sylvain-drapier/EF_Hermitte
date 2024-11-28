@@ -1,0 +1,7 @@
+Verifications module
+====================
+
+.. automodule:: Verifications
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,7 @@
+Mise\_en\_donnees module
+========================
+
+.. automodule:: Mise_en_donnees
+   :members:
+   :undoc-members:
+   :show-inheritance:

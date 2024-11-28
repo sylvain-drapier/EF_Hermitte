@@ -1,0 +1,38 @@
+.. HermNL documentation master file, created by
+   sphinx-quickstart on Sat Mar 30 11:16:25 2024.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+
+.. figure:: /images/Mines_Saint_Etienne_IMT_RVB.png
+   :align: left
+   :alt: Logo_MSE
+   :scale: 5%
+
+
+.. figure:: /images/BWB.png
+   :align: right
+   :alt: Logo_MSE
+   :scale: 40%
+
+Documentation de HermNL
+=======================
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Contenu:
+
+   modules
+
+
+Indexes et tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
+
+
+
+
