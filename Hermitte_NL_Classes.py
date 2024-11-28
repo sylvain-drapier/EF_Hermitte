@@ -1091,6 +1091,10 @@ pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (p
                 Fmax = Fmax2_temp
                 ddl = 2
                 node_Fmax = ind
+
+        if Fmax == 0:
+            Fmax = 1.
+            
         if ddl == 1:
             if (Fmax > 0) :
                 scale_force = (lim_xmax-x1_def[node_Fmax])/Fmax
