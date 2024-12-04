@@ -139,8 +139,8 @@
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">K_global,</span> <span class="pre">Kgeom_globaln</span> <span class="pre">M_global</span> <span class="pre">:</span> <span class="pre">np.array((,))</span></span></dt>
-<dd><p>Matrices de ridité élastiques et géométrique, et de masse</p>
+<span class="sig-name descname"><span class="pre">K_global,</span> <span class="pre">Kgeom_global,</span> <span class="pre">M_global</span> <span class="pre">:</span> <span class="pre">np.array((,))</span></span></dt>
+<dd><p>Matrices de rigidité élastiques et géométrique, et matrice de masse</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -157,7 +157,7 @@
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">Meca_elem</span> <span class="pre">:</span> <span class="pre">list(np.array(3))</span></span></dt>
+<span class="sig-name descname"><span class="pre">meca_elem</span> <span class="pre">:</span> <span class="pre">list(np.array(3))</span></span></dt>
 <dd><p>Liste des propriétés mécaniques; on peut s’en passer</p>
 </dd></dl>
 
@@ -188,7 +188,7 @@
 <span class="n">meca_elem</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">([[</span><span class="n">ES</span><span class="p">,</span> <span class="n">EI</span><span class="p">,</span><span class="n">Smasse</span><span class="p">]],</span><span class="n">nb_elem</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 <span class="n">px</span> <span class="o">=</span> <span class="mf">0.</span>
-<span class="n">py</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.</span>
+<span class="n">py</span> <span class="o">=</span> <span class="mf">0.</span>
 <span class="n">px_py</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">([[</span><span class="n">px</span><span class="p">,</span> <span class="n">py</span><span class="p">]],</span><span class="n">nb_elem</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 <span class="n">props_elem</span> <span class="o">=</span> <span class="p">[</span><span class="n">meca_elem</span><span class="p">,</span> <span class="n">px_py</span><span class="p">]</span>
@@ -338,9 +338,9 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.Modif_Proprietes_Elem">
-<span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">Modif_Proprietes_Elem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pbEF</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_elem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ES_el</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">EI_el</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.Modif_Proprietes_Elem" title="Lien permanent vers cette définition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">Modif_Proprietes_Elem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pbEF</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_elem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ES_el</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">EI_el</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Smasse_el</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.Modif_Proprietes_Elem" title="Lien permanent vers cette définition">¶</a></dt>
 <dd><p>Met à jour la rigidité élastique GLOBALE quand les 
-propriétés méca ES et EI d’un élément changent (pour la masse changement direct au niveau élémentaire) 
+propriétés méca ES, EI ou Smasse d’un élément changent
 <em>Remarque 1 :</em> On ne met pas à jour la rigidité géométrique qui sera mise à jour de toute façon quand les pré-contraintes auront été recalculées - cf fonction MAJ_rigidite_geometrique
 <em>Remarque 2 :</em> Précaution à prendre, avant de retrancher les contributions puis de les remplacer, s’assurer qu’elles ne correspondent pas à des ddls dans les CL de Dirichlet</p>
 <p><em>Parameters</em></p>
@@ -348,6 +348,7 @@ propriétés méca ES et EI d’un élément changent (pour la masse changement 
 <div><p>num_elem : int</p>
 <p>ES_el : float</p>
 <p>EI_el : float</p>
+<p>S_masse : float</p>
 </div></blockquote>
 <p><em>Returns</em></p>
 <blockquote>
@@ -472,16 +473,17 @@ propriétés méca ES et EI d’un élément changent (pour la masse changement 
 -* vp :* rang de la valeur propre et du vecteur propres à tracer, si champ = “X”; rang = 1 par défaut</p>
 <p>On raisonne par élément : affichage à partir des informations des éléments tous parcourus;  
 pour ne pas gérer les éléments spéciaux -&gt; les noeuds sont tracés 2 fois (pas grave !)</p>
-<p><em>Mot-clef :</em>
-- “u”: déplacement
-- “X” : mode propre
-- “e”: déformation
-- “K” : courbure
-- “N” : effort normal
-- “M” : moment de flexion
-- “ES” : rigidité de membrane
-- “EI” : rigidité de flexion
-- Smasse” : masse de la section</p>
+<p><em>Mot-clef :</em></p>
+<ul>
+<li><p>“u”: déplacement</p></li>
+<li><p>“X” : mode propre</p></li>
+<li><p>“e”: déformation</p></li>
+<li><p>“K” : courbure</p></li>
+<li><p>“N” : effort normal</p></li>
+<li><p>“M” : moment de flexion</p></li>
+<li><p>“ES” : rigidité de membrane</p></li>
+<li><p>“EI” : rigidité de flexion</p></li>
+<li><p>Smasse” : masse de la section</p>
 <blockquote>
 <div><p><em>Parameters</em></p>
 <dl class="simple">
@@ -495,12 +497,48 @@ pour ne pas gérer les éléments spéciaux -&gt; les noeuds sont tracés 2 fois
 <p><em>Returns</em></p>
 <p>ax : figure</p>
 </div></blockquote>
+</li>
+</ul>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.fonct_Application_CL">
 <span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">fonct_Application_CL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pbEF</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deplacements</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.fonct_Application_CL" title="Lien permanent vers cette définition">¶</a></dt>
-<dd><p>Prise en compte des conditions de Neumann et Dirichlet homogènes</p>
+<dd><blockquote>
+<div><p>Prise en compte des conditions de Neumann et Dirichlet homogènes / non-homogènes</p>
+</div></blockquote>
+<p><em>Parameters</em></p>
+<blockquote>
+<div><p>pbEF : instance de classe PbEF</p>
+<p>forces, deplacements : liste contenant les tuples [inode, ddl, amplitude]</p>
+</div></blockquote>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Caractéristiques :*</dt><dd><ul>
+<li><dl class="simple">
+<dt>vérification que des CL ne sont pas appliquées:</dt><dd><ul>
+<li><p>sur un noeud inexistant</p></li>
+<li><p>sur le même ddl (Dirichlet et Neumann)</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>conditions  de Dirichlet  </dt><dd><ul>
+<li><p>bloquées : diagonale unitaire pour rigidité, et diagonale nulle pour masse</p></li>
+<li><p>non-homogènes : pénalité = 1E5 * np.max(K_global)</p></li>
+<li><p>pour les vibrations ou le flambage, on traite toutes les CL Dirichlet comme homogènes - cf ci-dessous</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>calculs modes propres : proposition de <a class="reference external" href="https://bleyerj.github.io/comet-fenicsx/tours/eigenvalue_problems/buckling_3d_solid/buckling_3d_solid.html">https://bleyerj.github.io/comet-fenicsx/tours/eigenvalue_problems/buckling_3d_solid/buckling_3d_solid.html</a>
+si on met 1 pour les CL Dirichlet -&gt; vp =1, polluent le spectre; si on met 0 -&gt; infty</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
 </dd></dl>
 
 <dl class="py function">
@@ -580,7 +618,7 @@ les connectivités (3 colonnes : num_elem, noeud1, noeud2)</p>
 <dl class="simple">
 <dt><em>Méthodes :</em></dt><dd><ol class="arabic simple">
 <li><p>initialisation (maillage et assemblage),</p></li>
-<li><p>et 2”/ définition des CL Neumann et Dirichlet prise en compte des conditions de Dirichlet,</p></li>
+<li><p>prise en compte des des CL Neumann et Dirichlet (homgènes et non-homogènes),</p></li>
 <li><p>résolution,</p></li>
 <li><p>calculs déformations et efforts internes : utilise fonction “Calcul_Def_Eff” définie dans “BWB_Classes.py”</p></li>
 <li><p>affichage = utilise fonction “Affichage” définie dans “BWB_Classes.py”</p></li>
@@ -588,7 +626,7 @@ les connectivités (3 colonnes : num_elem, noeud1, noeud2)</p>
 </ol>
 </dd>
 </dl>
-<p><em>Remarque :</em> la discrétisation spatiale maillage et les conditions aux limites ne changent pas pour une instance pbEF; le maillage EF peut changer !</p>
+<p><em>Remarque :</em> la discrétisation spatiale et les conditions aux limites ne changent pas pour une instance pbEF; le maillage EF peut changer !</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.pbEF_poutre.Affichage">
 <span class="sig-name descname"><span class="pre">Affichage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mot_clef</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colormap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vp</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.pbEF_poutre.Affichage" title="Lien permanent vers cette définition">¶</a></dt>
@@ -598,10 +636,11 @@ les connectivités (3 colonnes : num_elem, noeud1, noeud2)</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.pbEF_poutre.Application_CL">
 <span class="sig-name descname"><span class="pre">Application_CL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">forces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deplacements</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.pbEF_poutre.Application_CL" title="Lien permanent vers cette définition">¶</a></dt>
-<dd><p>Prise en compte des conditions de Neumann et Dirichlet homogènes  
+<dd><p>Prise en compte des conditions de Neumann et Dirichlet homogènes / non-homogènes 
 - vérifie au préalable que les noeuds où sont appliquées les CL existent bien
 - Neumann = vecteurs forces
-- Dirichlet = contributions nulles et pour la diagonale : rigidité unitaire, masse nulle pour ne pas polluer le spectre des VP</p>
+- Dirichlet = contributions nulles et pour la diagonale : rigidité unitaire, masse nulle pour ne pas polluer le spectre des VP
+- Dicichlet non-homogènes = pénalité</p>
 </dd></dl>
 
 <dl class="py method">
