@@ -1,5 +1,5 @@
 .. HermNL documentation master file, created by
-   sphinx-quickstart on Sat Mar 30 11:16:25 2024.
+   sphinx-quickstart on November 2024.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
@@ -15,8 +15,8 @@
    :alt: Logo_MSE
    :scale: 40%
 
-Documentation de HermNL
-=======================
+Documentation de EF Hermitte
+============================
 
 .. toctree::
    :maxdepth: 3
@@ -24,6 +24,9 @@ Documentation de HermNL
 
    modules
 
+Diagramme UML
+=============
+.. uml ::
 
 Indexes et tables
 ==================
