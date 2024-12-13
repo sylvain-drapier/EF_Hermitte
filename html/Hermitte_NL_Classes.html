@@ -111,7 +111,7 @@
 </dl>
 </li>
 <li><dl class="simple">
-<dt><strong>Classe pbEF_poutre</strong> = = attributs et méthodes de tout le problème. Le passage des variables se fait par référence en interne à l’objet. Pas de variables globales.   </dt><dd><p><em>Structures de stockage</em> :</p>
+<dt><strong>Classe pbEF_poutre</strong> = Attributs et méthodes de tout le problème. Le passage des variables se fait par référence en interne à l’objet. Pas de variables globales.   </dt><dd><p><em>Structures de stockage</em> :</p>
 <ul class="simple">
 <li><p>elem_global = liste qui contient les éléments,</p></li>
 <li><p>nodes_global = liste qui contient les noeuds; elle définit l’ordre de stockage des ddls et donc des vecteurs et matrice,</p></li>
@@ -173,6 +173,12 @@
 <dd><p>Liste des noeuds avec CL Dirichlet</p>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">K_global_copie,</span> <span class="pre">F_tot_copie</span> <span class="pre">:</span> <span class="pre">np.array((,))</span></span></dt>
+<dd><p>Copies de la rigidité globale et du vecteur des efforts extérieurs pour calculer les réactions reac = K_global*dofs - F_tot</p>
+</dd></dl>
+
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Définition des propriétés par élément : les données matériaux et les chargements répartis sont </span>
 <span class="c1"># stockés dans un tableau **props_elem** de type np.array à 3 dimensions</span>
 <span class="c1"># Unités SI (mksA)</span>
@@ -200,9 +206,9 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.Creation_Elem_Assemblage">
 <span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">Creation_Elem_Assemblage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pbEF</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_elem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inode1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inode2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pptes_meca</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">px_py</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.Creation_Elem_Assemblage" title="Lien permanent vers cette définition">¶</a></dt>
-<dd><p>Création d’un élement et intégration de sa raideur élastique, sa matrice de masse, et efforts dans les grandeurs globales, en ne prenant en compte les contritions correspondant aux CL Dirichlet (permet d’ajouter des éléments a posteriori)
-* Remarque :* La rigidité géométrique est initialisée à 0, elle sera mise à jour après le calcul des pré-contraintes dans MAJ_Rigidite_geom_Elem(num_elem)
-<em>Parameters</em></p>
+<dd><p>Création d’un élement et intégration de sa raideur élastique, sa matrice de masse, et efforts dans les grandeurs globales, en ne prenant pas en compte les contributions correspondant aux CL Dirichlet (permet d’ajouter des éléments a posteriori)</p>
+<p><em>Remarque</em> : La rigidité géométrique est initialisée à 0, elle sera mise à jour après le calcul des pré-contraintes dans MAJ_Rigidite_geom_Elem(num_elem)</p>
+<p><em>Parameters</em></p>
 <blockquote>
 <div><dl class="simple">
 <dt>num_elem<span class="classifier">int</span></dt><dd><p>numéro de l’élément à créer</p>
@@ -219,7 +225,7 @@
 </dd>
 </dl>
 </div></blockquote>
-<p><em>Returns</em></p>
+<p><em>Retourne</em></p>
 <blockquote>
 <div><p>None.</p>
 </div></blockquote>
@@ -233,7 +239,7 @@
 <blockquote>
 <div><p>n_elem : int</p>
 </div></blockquote>
-<p><em>Returns</em></p>
+<p><em>Retourne</em></p>
 <blockquote>
 <div><p>None.</p>
 </div></blockquote>
@@ -243,8 +249,7 @@
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.Elem">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">Elem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_elem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inode1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inode2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meca_elem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">px_py</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodes_global</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">le</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kel_e</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kg_e</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f_e</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">M_e</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">def_eff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.Elem" title="Lien permanent vers cette définition">¶</a></dt>
 <dd><p>Bases : <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Classe Elément.</p>
-<p>Les noeuds (de type Node) inode1 et inode2 existent et sont utilisés</p>
+<p><em>Remarque :</em> Les noeuds (de type Node) inode1 et inode2 existent et sont utilisés</p>
 <dl class="py attribute">
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">num_elem</span> <span class="pre">:</span> <span class="pre">int</span></span></dt>
@@ -340,9 +345,11 @@
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.Modif_Proprietes_Elem">
 <span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">Modif_Proprietes_Elem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pbEF</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_elem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ES_el</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">EI_el</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Smasse_el</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.Modif_Proprietes_Elem" title="Lien permanent vers cette définition">¶</a></dt>
 <dd><p>Met à jour la rigidité élastique GLOBALE quand les 
-propriétés méca ES, EI ou Smasse d’un élément changent
-<em>Remarque 1 :</em> On ne met pas à jour la rigidité géométrique qui sera mise à jour de toute façon quand les pré-contraintes auront été recalculées - cf fonction MAJ_rigidite_geometrique
-<em>Remarque 2 :</em> Précaution à prendre, avant de retrancher les contributions puis de les remplacer, s’assurer qu’elles ne correspondent pas à des ddls dans les CL de Dirichlet</p>
+propriétés méca ES, EI ou Smasse d’un élément changent</p>
+<ul class="simple">
+<li><p><em>Remarque 1</em> : On ne met pas à jour la rigidité géométrique qui sera mise à jour de toute façon quand les pré-contraintes auront été recalculées - cf fonction MAJ_rigidite_geometrique</p></li>
+<li><p><em>Remarque 2</em> : Précaution à prendre, avant de retrancher les contributions puis de les remplacer, s’assurer qu’elles ne correspondent pas à des ddls dans les CL de Dirichlet</p></li>
+</ul>
 <p><em>Parameters</em></p>
 <blockquote>
 <div><p>num_elem : int</p>
@@ -350,7 +357,7 @@ propriétés méca ES, EI ou Smasse d’un élément changent
 <p>EI_el : float</p>
 <p>S_masse : float</p>
 </div></blockquote>
-<p><em>Returns</em></p>
+<p><em>Retourne</em></p>
 <blockquote>
 <div><p>None.</p>
 </div></blockquote>
@@ -360,7 +367,6 @@ propriétés méca ES, EI ou Smasse d’un élément changent
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.Node">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">Node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">numero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.Node" title="Lien permanent vers cette définition">¶</a></dt>
 <dd><p>Bases : <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Classe Node</p>
 <dl class="py attribute">
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">numero</span> <span class="pre">:</span> <span class="pre">int</span></span></dt>
@@ -401,13 +407,13 @@ propriétés méca ES, EI ou Smasse d’un élément changent
 <dl class="py function">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.Renvoi_index_elem">
 <span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">Renvoi_index_elem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_elem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">liste</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.Renvoi_index_elem" title="Lien permanent vers cette définition">¶</a></dt>
-<dd><p>renvoi l’indice dans la liste elem_global d’un élément de numéro n_elem</p>
+<dd><p>Renvoi l’indice dans la liste elem_global d’un élément de numéro n_elem</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.Renvoi_index_node">
 <span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">Renvoi_index_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">liste</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.Renvoi_index_node" title="Lien permanent vers cette définition">¶</a></dt>
-<dd><p>renvoi l’indice du noeud n_node dans la liste de noeuds “liste”</p>
+<dd><p>Renvoi l’indice du noeud n_node dans la liste de noeuds “liste”</p>
 </dd></dl>
 
 <dl class="py function">
@@ -430,6 +436,11 @@ propriétés méca ES, EI ou Smasse d’un élément changent
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.calcul_fe">
 <span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">calcul_fe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">le</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">px</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">py</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.calcul_fe" title="Lien permanent vers cette définition">¶</a></dt>
 <dd><p>Second membre des efforts répartis recalculé avec changement de base</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">fe</span> <span class="pre">:</span> <span class="pre">np.array(6)</span></span></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="py function">
@@ -467,14 +478,18 @@ propriétés méca ES, EI ou Smasse d’un élément changent
 <dl class="py function">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.fonct_Affichage">
 <span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">fonct_Affichage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pbEF</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mot_clef</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'coolwarm'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.fonct_Affichage" title="Lien permanent vers cette définition">¶</a></dt>
-<dd><p><em>Affichages :</em> maillage initial et champ “mot_clef” sur le maillage déformé (linéaire) et les efforts imposés
-** Mot-clefs optionnels **
--* colormap :* couleur de l’affichage de la colorbar affichée pour champ &lt;&gt; “u””; si vide ne pas afficher 
--* vp :* rang de la valeur propre et du vecteur propres à tracer, si champ = “X”; rang = 1 par défaut</p>
+<dd><p><em>Affichages :</em> maillage initial et champ “mot_clef” sur le maillage déformé (linéaire) et les efforts imposés</p>
+<dl class="simple">
+<dt><em>Mot-clefs optionnels</em></dt><dd><ul class="simple">
+<li><p><em>colormap :</em> couleur de l’affichage de la colorbar affichée pour champ != “u””; si vide ne pas afficher</p></li>
+<li><p><em>vp :</em> rang de la valeur propre et du vecteur propres à tracer, si champ = “X”; rang = 1 par défaut</p></li>
+</ul>
+</dd>
+</dl>
 <p>On raisonne par élément : affichage à partir des informations des éléments tous parcourus;  
 pour ne pas gérer les éléments spéciaux -&gt; les noeuds sont tracés 2 fois (pas grave !)</p>
 <p><em>Mot-clef :</em></p>
-<ul>
+<ul class="simple">
 <li><p>“u”: déplacement</p></li>
 <li><p>“X” : mode propre</p></li>
 <li><p>“e”: déformation</p></li>
@@ -483,38 +498,37 @@ pour ne pas gérer les éléments spéciaux -&gt; les noeuds sont tracés 2 fois
 <li><p>“M” : moment de flexion</p></li>
 <li><p>“ES” : rigidité de membrane</p></li>
 <li><p>“EI” : rigidité de flexion</p></li>
-<li><p>Smasse” : masse de la section</p>
-<blockquote>
-<div><p><em>Parameters</em></p>
-<dl class="simple">
-<dt>mot_clef<span class="classifier">char</span></dt><dd><p>Définit le champ à afficher</p>
-</dd>
-<dt>colormap<span class="classifier"></span></dt><dd><p>définit le style de couleur de la colormap et indique s’il faut l’afficher; chaine vide &lt;=&gt; ne pas afficher</p>
-</dd>
-<dt>vp<span class="classifier"></span></dt><dd><p>rang de la valeur &amp; vecteur propre à afficher si mot_clef champ = “X”; 1ère VP par défaut</p>
-</dd>
-</dl>
-<p><em>Returns</em></p>
-<p>ax : figure</p>
-</div></blockquote>
-</li>
+<li><p>Smasse” : masse de la section</p></li>
 </ul>
+<p><em>Parametres</em></p>
+<ul class="simple">
+<li><p>mot_clef : (char) Définit le champ à afficher</p></li>
+<li><p>colormap : Définit le style de couleur de la colormap et indique s’il faut l’afficher; chaine vide &lt;=&gt; ne pas afficher</p></li>
+<li><p>vp : Rang de la valeur &amp; vecteur propre à afficher si mot_clef champ = “X”; 1ère VP par défaut</p></li>
+</ul>
+<p><em>Retourne</em> ax : figure</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.fonct_Application_CL">
-<span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">fonct_Application_CL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pbEF</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deplacements</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.fonct_Application_CL" title="Lien permanent vers cette définition">¶</a></dt>
-<dd><blockquote>
-<div><p>Prise en compte des conditions de Neumann et Dirichlet homogènes / non-homogènes</p>
-</div></blockquote>
-<p><em>Parameters</em></p>
+<span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">fonct_Application_CL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pbEF</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signe_penalite</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.fonct_Application_CL" title="Lien permanent vers cette définition">¶</a></dt>
+<dd><p>Prise en compte des conditions de Neumann et Dirichlet homogènes / non-homogènes</p>
 <blockquote>
-<div><p>pbEF : instance de classe PbEF</p>
-<p>forces, deplacements : liste contenant les tuples [inode, ddl, amplitude]</p>
+<div><ul class="simple">
+<li><p>vérifie au préalable que les noeuds où sont appliquées les CL existent bien et qu’il n’y a pas de conflit (2 CL sur le même ddl)</p></li>
+<li><p>Neumann = vecteur forces</p></li>
+<li><p>Dirichlet homogènes = contributions nulles et pour la diagonale : rigidité unitaire, masse nulle pour ne pas polluer le spectre des VP</p></li>
+<li><p>Dirichlet non-homogènes = pénalité;</p></li>
+</ul>
 </div></blockquote>
+<p><em>Parametres</em></p>
 <ul class="simple">
-<li><dl class="simple">
-<dt>Caractéristiques :*</dt><dd><ul>
+<li><p>pbEF : instance de classe PbEF</p></li>
+<li><p>forces, deplacements : liste contenant les tuples [inode, ddl, amplitude]</p></li>
+<li><p>signe_penalite : si -1, on retranche les contributions de pénalités dans K_global, sinon application CL standard</p></li>
+</ul>
+<p><em>Caractéristiques :</em></p>
+<ul class="simple">
 <li><dl class="simple">
 <dt>vérification que des CL ne sont pas appliquées:</dt><dd><ul>
 <li><p>sur un noeud inexistant</p></li>
@@ -524,10 +538,11 @@ pour ne pas gérer les éléments spéciaux -&gt; les noeuds sont tracés 2 fois
 </dl>
 </li>
 <li><dl class="simple">
-<dt>conditions  de Dirichlet  </dt><dd><ul>
-<li><p>bloquées : diagonale unitaire pour rigidité, et diagonale nulle pour masse</p></li>
+<dt>conditions de Dirichlet  </dt><dd><ul>
+<li><p>bloquées : diagonale unitaire pour rigidité, et diagonale nulle pour masse (Rigidité géométrique pas encore initialisée)</p></li>
 <li><p>non-homogènes : pénalité = 1E5 * np.max(K_global)</p></li>
-<li><p>pour les vibrations ou le flambage, on traite toutes les CL Dirichlet comme homogènes - cf ci-dessous</p></li>
+<li><p>non-homogènes et signe_penalite = -1 : on rentranche les contributions dans K_global pour utiliser dans les calculs de valeurs propres</p></li>
+<li><p>pour les vibrations (M) ou le flambage (K_geom), on traite toutes les CL Dirichlet comme homogènes - cf ci-dessous</p></li>
 </ul>
 </dd>
 </dl>
@@ -535,21 +550,17 @@ pour ne pas gérer les éléments spéciaux -&gt; les noeuds sont tracés 2 fois
 <li><p>calculs modes propres : proposition de <a class="reference external" href="https://bleyerj.github.io/comet-fenicsx/tours/eigenvalue_problems/buckling_3d_solid/buckling_3d_solid.html">https://bleyerj.github.io/comet-fenicsx/tours/eigenvalue_problems/buckling_3d_solid/buckling_3d_solid.html</a>
 si on met 1 pour les CL Dirichlet -&gt; vp =1, polluent le spectre; si on met 0 -&gt; infty</p></li>
 </ul>
-</dd>
-</dl>
-</li>
-</ul>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.fonct_Calcul_Def_Eff">
 <span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">fonct_Calcul_Def_Eff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pbEF</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.fonct_Calcul_Def_Eff" title="Lien permanent vers cette définition">¶</a></dt>
-<dd><p>Pour tous les éléments, calcul les déformations et contraintes généralisées par élément dans le repère local - supposé constant au centre de l’élément (courbure) 
-* Remarque :* Nécessite d’avoir mis à jour les déplacements aux noeuds - dans pb.Resol()
-<em>Returns</em></p>
+<dd><p>Pour tous les éléments, calcul les déformations et contraintes généralisées par élément dans le repère local - supposé constant au centre de l’élément (courbure)</p>
+<p><em>Remarque :</em> Nécessite d’avoir mis à jour les déplacements aux noeuds - dans pb.Resol()</p>
+<p><em>Retourne</em></p>
 <blockquote>
 <div><dl class="simple">
-<dt>elem_global<span class="classifier">list</span></dt><dd><p>liste globale des éléments</p>
+<dt>elem_global<span class="classifier">liste</span></dt><dd><p>liste globale des éléments</p>
 </dd>
 </dl>
 </div></blockquote>
@@ -558,25 +569,23 @@ si on met 1 pour les CL Dirichlet -&gt; vp =1, polluent le spectre; si on met 0 
 <dl class="py function">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.fonct_Calcul_Modes_Propres">
 <span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">fonct_Calcul_Modes_Propres</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pbEF</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mot_clef</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_modes</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.fonct_Calcul_Modes_Propres" title="Lien permanent vers cette définition">¶</a></dt>
-<dd><p>Calcul des “n_modes” pulsations et modes propres
-* Variable mot_clef :* prend 2 valeurs “Flambage” ou “Vibration” 
-* Returns :* n_modes premières valeurs propres et vecteurs propres attachés à pbEF</p>
+<dd><p>Calcul des “n_modes” pulsations et modes propres</p>
+<p><em>Variable mot_clef :</em> prend 2 valeurs “Flambage” ou “Vibration”</p>
+<p><em>Retourne :</em> n_modes premières valeurs propres et vecteurs propres attachés à pbEF</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.fonct_MAJ_rigidite_geom_elem">
 <span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">fonct_MAJ_rigidite_geom_elem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pbEF</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_elem</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.fonct_MAJ_rigidite_geom_elem" title="Lien permanent vers cette définition">¶</a></dt>
-<dd><dl class="simple">
-<dt>Met à jour la rigidité géométrique globale pour l’élément <em>num_elem</em> pour le calcul des charges critiques<span class="classifier"></span></dt><dd><p>retranche puis remplace ses composantes dans la rigidité globale par Effort_N_(repère-local)*kg_e[,] et met à jours les CL</p>
-</dd>
-</dl>
+<dd><p>Met à jour la rigidité géométrique globale pour l’élément <em>num_elem</em> pour le calcul des charges critiques : 
+retranche puis remplace ses composantes dans la rigidité globale par Effort_N_(repère-local)*kg_e[,] et met à jours les CL</p>
 <p><em>Méthode :</em> On retranche les contributions, avant d’ajouter les nouvelles contributions</p>
 <p><em>Remarque :</em> Précaution à prendre, avant de retrancher les contributions puis de les remplacer, s’assurer qu’elles ne correspondent pas à des ddls dans les CL de Dirichlet (contributions nulles dans ce cas)</p>
-<p><em>Parameters</em></p>
+<p><em>Parametres</em></p>
 <blockquote>
 <div><p>num_elem : int</p>
 </div></blockquote>
-<p><em>Returns</em></p>
+<p><em>Retourne</em></p>
 <blockquote>
 <div><p>None.</p>
 </div></blockquote>
@@ -591,8 +600,8 @@ si on met 1 pour les CL Dirichlet -&gt; vp =1, polluent le spectre; si on met 0 
 <dl class="py function">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.fonct_Maille_Poutre">
 <span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">fonct_Maille_Poutre</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Nl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.fonct_Maille_Poutre" title="Lien permanent vers cette définition">¶</a></dt>
-<dd><p>Maille une poutre de longueur lp avec Nl éléments, formant éventuellement un angle par rapport à x_1 
-<em>Retourne :</em> la liste des noeuds et la liste des connectivités initialisées</p>
+<dd><p>Maille une poutre de longueur lp avec Nl éléments, formant éventuellement un angle par rapport à x_1</p>
+<p><em>Retourne :</em> la liste des noeuds et la liste des connectivités initialisées</p>
 </dd></dl>
 
 <dl class="py function">
@@ -602,10 +611,10 @@ si on met 1 pour les CL Dirichlet -&gt; vp =1, polluent le spectre; si on met 0 
 les connectivités (3 colonnes : num_elem, noeud1, noeud2)</p>
 <p><em>Retourne :</em> la liste des noeuds “nodes_global” et la connectivité des éléments “nodes_elem”</p>
 <dl class="simple">
-<dt>** Vérifications **<span class="classifier"></span></dt><dd><ul class="simple">
-<li><p>1 tous les noeuds nécessaires pour construire les éléments existent; sinon arrêt et affichage Erreur</p></li>
-<li><p>2 les noeuds non utilisés sont supprimés - message d’avertissement</p></li>
-</ul>
+<dt><em>Vérifications :</em> </dt><dd><ol class="arabic simple">
+<li><p>tous les noeuds nécessaires pour construire les éléments existent; sinon arrêt et affichage Erreur</p></li>
+<li><p>les noeuds non utilisés sont supprimés - message d’avertissement</p></li>
+</ol>
 </dd>
 </dl>
 </dd></dl>
@@ -618,7 +627,7 @@ les connectivités (3 colonnes : num_elem, noeud1, noeud2)</p>
 <dl class="simple">
 <dt><em>Méthodes :</em></dt><dd><ol class="arabic simple">
 <li><p>initialisation (maillage et assemblage),</p></li>
-<li><p>prise en compte des des CL Neumann et Dirichlet (homgènes et non-homogènes),</p></li>
+<li><p>prise en compte des CL Neumann et Dirichlet (homgènes et non-homogènes),</p></li>
 <li><p>résolution,</p></li>
 <li><p>calculs déformations et efforts internes : utilise fonction “Calcul_Def_Eff” définie dans “BWB_Classes.py”</p></li>
 <li><p>affichage = utilise fonction “Affichage” définie dans “BWB_Classes.py”</p></li>
@@ -626,7 +635,8 @@ les connectivités (3 colonnes : num_elem, noeud1, noeud2)</p>
 </ol>
 </dd>
 </dl>
-<p><em>Remarque :</em> la discrétisation spatiale et les conditions aux limites ne changent pas pour une instance pbEF; le maillage EF peut changer !</p>
+<p><em>Remarque 1:</em> la discrétisation spatiale et les conditions aux limites ne changent pas pour une instance pbEF; le maillage EF peut changer !</p>
+<p><em>Remarque 2 :</em> l’utilisation de <strong>pénalité</strong> pour imposer les CL Dirichlet non-homogènes implique de retrancher cette pénalité après la résolution du problème statique - dans pbEF.Resol()</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.pbEF_poutre.Affichage">
 <span class="sig-name descname"><span class="pre">Affichage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mot_clef</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colormap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vp</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.pbEF_poutre.Affichage" title="Lien permanent vers cette définition">¶</a></dt>
@@ -635,12 +645,15 @@ les connectivités (3 colonnes : num_elem, noeud1, noeud2)</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.pbEF_poutre.Application_CL">
-<span class="sig-name descname"><span class="pre">Application_CL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">forces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deplacements</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.pbEF_poutre.Application_CL" title="Lien permanent vers cette définition">¶</a></dt>
-<dd><p>Prise en compte des conditions de Neumann et Dirichlet homogènes / non-homogènes 
-- vérifie au préalable que les noeuds où sont appliquées les CL existent bien
-- Neumann = vecteurs forces
-- Dirichlet = contributions nulles et pour la diagonale : rigidité unitaire, masse nulle pour ne pas polluer le spectre des VP
-- Dicichlet non-homogènes = pénalité</p>
+<span class="sig-name descname"><span class="pre">Application_CL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">signe_penalite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.pbEF_poutre.Application_CL" title="Lien permanent vers cette définition">¶</a></dt>
+<dd><p>Prise en compte des conditions de Neumann et Dirichlet homogènes / non-homogènes</p>
+<ul class="simple">
+<li><p>vérifie au préalable que les noeuds où sont appliquées les CL existent bien et qu’il n’y a pas de conflit</p></li>
+<li><p>Neumann = vecteur forces</p></li>
+<li><p>Dirichlet homogènes = contributions nulles et pour la diagonale : rigidité unitaire, masse nulle pour ne pas polluer le spectre des VP</p></li>
+<li><p>Dirichlet non-homogènes = pénalité;</p></li>
+<li><p>signe_penalite = si -1, on retranche les contributions de pénalités dans K_global et F_tot</p></li>
+</ul>
 </dd></dl>
 
 <dl class="py method">
@@ -656,6 +669,13 @@ les connectivités (3 colonnes : num_elem, noeud1, noeud2)</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="Hermitte_NL_Classes.pbEF_poutre.Calcul_Reactions">
+<span class="sig-name descname"><span class="pre">Calcul_Reactions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.pbEF_poutre.Calcul_Reactions" title="Lien permanent vers cette définition">¶</a></dt>
+<dd><p>Calcul les réactions associées aux CL de Dirichlet : Rb = (K_global * u - F_tot)</p>
+<p><strong>on travaille sur les copies de K_global et F_tot faites avec prise en compte des CL Dirichlet</strong></p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.pbEF_poutre.MAJ_Rigidite_Geom">
 <span class="sig-name descname"><span class="pre">MAJ_Rigidite_Geom</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.pbEF_poutre.MAJ_Rigidite_Geom" title="Lien permanent vers cette définition">¶</a></dt>
 <dd><p>Mise à jour des rigidités géométriques connaissant les efforts normaux du problème initilal - appel MAJ_Rigidite_Geom_elem</p>
@@ -665,15 +685,31 @@ les connectivités (3 colonnes : num_elem, noeud1, noeud2)</p>
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.pbEF_poutre.Maillage_Assemblage">
 <span class="sig-name descname"><span class="pre">Maillage_Assemblage</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.pbEF_poutre.Maillage_Assemblage" title="Lien permanent vers cette définition">¶</a></dt>
 <dd><p>Génére les grandeurs globales (vecteurs, matrices) à partir d’une liste de paire de noeuds (et numéro d’élément associé)</p>
-<ul class="simple">
-<li><p>Retourne :* les vecteurs et matrices globaux assemblés</p></li>
-</ul>
+<p><em>Retourne :</em> RIEN</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.pbEF_poutre.Resol">
 <span class="sig-name descname"><span class="pre">Resol</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.pbEF_poutre.Resol" title="Lien permanent vers cette définition">¶</a></dt>
-<dd><p>Résout le système d’équations linéaires avec les conditions de Dirichlet homogènes imposées</p>
+<dd><dl class="simple">
+<dt>Résout le système d’équations linéaires        </dt><dd><ul class="simple">
+<li><p>si conditions de Dirichlet homogènes imposées, retranche les pénalités après résolution</p></li>
+<li><p>met à jour les déplacements</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">arguments</span> <span class="pre">self</span> <span class="pre">:</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">-</span> <span class="pre">K_global,</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">-</span> <span class="pre">F_tot,</span> <span class="pre">dofs</span> <span class="pre">(vecteur</span> <span class="pre">déplacements),</span></span></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">-</span> <span class="pre">nodes_global</span> <span class="pre">(liste</span> <span class="pre">des</span> <span class="pre">noeuds)</span></span></dt>
+<dd></dd></dl>
+
+<p><em>Retorune :</em> nodes_global, liste global des noeuds mis à jour</p>
 </dd></dl>
 
 </dd></dl>
@@ -681,20 +717,28 @@ les connectivités (3 colonnes : num_elem, noeud1, noeud2)</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.y_cercle">
 <span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">y_cercle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.y_cercle" title="Lien permanent vers cette définition">¶</a></dt>
-<dd><p>Calcul des caracteristiques  géométriques des courbes décrivant les peaux
-- cercle qui passe par les points (0,0),(l,h),(2l,0):    x1_c = l, x2_c = (h^2-l^2)/2h et R^2 = (h^2+l^2/2h)^2
-Pour une abscisse x1, on calcule la plus grande racine x2_max : (x2 - x2c)^2 - R^2 - (x1 - x1_c)^2 =0 =&gt; x2^2 - 2 x2 x2_c + x2_c^2 - (R^2 + (x1 - x1_c)^2)</p>
+<dd><p>Calcul des caracteristiques géométriques des courbes décrivant les peaux du BWB</p>
+<ul class="simple">
+<li><p>cercle qui passe par les points (0,0),(l,h),(2l,0):    x1_c = l, x2_c = (h^2-l^2)/2h et R^2 = (h^2+l^2/2h)^2</p></li>
+<li><p>pour une abscisse x1, on calcule la plus grande racine x2_max : (x2 - x2c)^2 - R^2 - (x1 - x1_c)^2 =0 =&gt; x2^2 - 2 x2 x2_c + x2_c^2 - (R^2 + (x1 - x1_c)^2)</p></li>
+</ul>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.y_inf">
 <span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">y_inf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xi</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.y_inf" title="Lien permanent vers cette définition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Calcul des caracteristiques géométriques des courbes décrivant les peaux du BWB</p>
+<p><em>peau inférieure</em> fittée par un polynôme de degrés 7</p>
+<p><em>Retourne :</em> altitude</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="Hermitte_NL_Classes.y_sup">
 <span class="sig-prename descclassname"><span class="pre">Hermitte_NL_Classes.</span></span><span class="sig-name descname"><span class="pre">y_sup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xi</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Hermitte_NL_Classes.y_sup" title="Lien permanent vers cette définition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Calcul des caracteristiques géométriques des courbes décrivant les peaux du BWB</p>
+<p><em>peau supérieure</em> fittée par un polynôme de degrés 7</p>
+<p><em>Retourne :</em> altitude</p>
+</dd></dl>
 
 </section>
 </section>
