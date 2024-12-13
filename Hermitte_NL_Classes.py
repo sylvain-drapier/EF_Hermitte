@@ -67,9 +67,9 @@ Classes et utilitaires pour résolution statique + charges de flambage + modes v
 .. attribute:: nodes_elem : list([[,,]])
 
     Liste d'éléments qui constituent le maillage: numéro d'élément et paires de noeuds (l'ordre des noeuds donne l'orientation)     
-.. attribute:: K_global, Kgeom_globaln M_global : np.array((,))
+.. attribute:: K_global, Kgeom_global, M_global : np.array((,))
 
-    Matrices de ridité élastiques et géométrique, et de masse 
+    Matrices de rigidité élastiques et géométrique, et matrice de masse 
 .. attribute:: F_con, F_rep, F_tot : np.array()
 
     Efforts concentrés, répartis, et totaux 
@@ -86,8 +86,11 @@ Classes et utilitaires pour résolution statique + charges de flambage + modes v
     
 .. attribute:: fixed_dofs : list([])
 
-    Liste des noeuds bloqués  
+    Liste des noeuds avec CL Dirichlet  
             
+.. attribute:: K_global_copie, F_tot_copie : np.array((,))
+    
+    Copies de la rigidité globale et du vecteur des efforts extérieurs pour calculer les réactions reac = K_global*dofs - F_tot
     
 ::
        
@@ -106,7 +109,7 @@ Classes et utilitaires pour résolution statique + charges de flambage + modes v
     meca_elem = np.repeat([[ES, EI,Smasse]],nb_elem,axis=0)
     
     px = 0.
-    py = -0.
+    py = 0.
     px_py = np.repeat([[px, py]],nb_elem,axis=0)
     
     props_elem = [meca_elem, px_py]
@@ -189,7 +192,7 @@ def Renvoi_index_node(n_node, liste):
     for i in range(len(liste)):
         if liste[i].numero == n_node:
             return i  # Renvoie la position de l'élément si trouvé
-    return -1  # Renvoie -1 si l'élément n'est pas trouvé 
+    return -100  # Renvoie -1 si l'élément n'est pas trouvé 
 
 """
 ======================================  utilitaires de la classe Elem ===============================
@@ -553,14 +556,15 @@ Création d'un élement et intégration de sa raideur élastique, sa matrice de 
 
     """
      
-    # global fixed_dofs
-
+    
     fixed_dofs = pbEF.fixed_dofs
     elem_global = pbEF.elem_global
     nodes_global = pbEF.nodes_global 
     F_rep = pbEF.F_rep
     K_global = pbEF.K_global    
     M_global = pbEF.M_global 
+    K_global_copie = pbEF.K_global_copie
+    F_tot_copie = pbEF.F_tot_copie
     
     elem_global.append( Elem(num_elem, inode1, inode2, pptes_meca, px_py, nodes_global) )        
     elem_temp = elem_global[Renvoi_index_elem(num_elem, elem_global)]
@@ -570,9 +574,15 @@ Création d'un élement et intégration de sa raideur élastique, sa matrice de 
     dof_global = [3*ipos_node1, 3*ipos_node1 + 1, 3*ipos_node1+2, 3*ipos_node2, 3*ipos_node2 +1 , 3*ipos_node2 + 2]
     dof_local = []
     # ne pas prendre en compte les ddls dans les CL Dirichlet : on ne touche pas aux contributions correspondantes
+    # il faut mettre à jour les copies de K_global et F_tot, même si ddl concerné par CL Dirichlet
+
+    # copies de K_global et F_tot (pbs avec pénalités) 
     for i in range(6):
+        F_tot_copie[dof_global[i]] += elem_temp.f_e[i]      
         if (dof_global[i] not in fixed_dofs):
             dof_local.append(i)
+        for j in range(6):
+            K_global_copie[dof_global[i], dof_global[j]] += elem_temp.kel_e[i, j]
   
     for i in dof_local:
         F_rep[dof_global[i]] += elem_temp.f_e[i]
@@ -580,7 +590,8 @@ Création d'un élement et intégration de sa raideur élastique, sa matrice de 
             K_global[dof_global[i], dof_global[j]] += elem_temp.kel_e[i, j]
             M_global[dof_global[i], dof_global[j]] += elem_temp.M_e[i, j]
 
-    return F_rep, K_global, M_global    
+    return K_global.copy() # on s'assure que la copie de sauvegarde ne sera pas affectée par les modifications sur l'original
+    
     
 
 def Modif_Proprietes_Elem (pbEF, num_elem, ES_el, EI_el, Smasse_el):
@@ -609,6 +620,7 @@ propriétés méca ES, EI ou Smasse d'un élément changent
     
     K_global = pbEF.K_global
     M_global = pbEF.M_global
+    K_global_copie = pbEF.K_global_copie
     fixed_dofs = pbEF.fixed_dofs
     elem_global = pbEF.elem_global
     
@@ -634,6 +646,7 @@ propriétés méca ES, EI ou Smasse d'un élément changent
         for j in dof_local:
             K_global[dof_global[i], dof_global[j]] -= elem_temp.kel_e[i, j]
             M_global[dof_global[i], dof_global[j]] -= elem_temp.M_e[i, j]
+            K_global_copie[dof_global[i], dof_global[j]] -= elem_temp.kel_e[i, j]
             # print('K_global[',dof_global[i],',',dof_global[j],'] -= elem_temp.kel_e[',i,',',j,']')
     
     elem_temp.mise_a_jour_kel()
@@ -641,7 +654,8 @@ propriétés méca ES, EI ou Smasse d'un élément changent
     for i in dof_local:
         for j in dof_local:
             K_global[dof_global[i], dof_global[j]] += elem_temp.kel_e[i, j]
-            M_global[dof_global[i], dof_global[j]] += elem_temp.M_e[i, j]           
+            M_global[dof_global[i], dof_global[j]] += elem_temp.M_e[i, j]
+            K_global_copie[dof_global[i], dof_global[j]] -= elem_temp.kel_e[i, j]
 
 def fonct_MAJ_rigidite_geom_elem(pbEF, num_elem):
     """
@@ -693,7 +707,6 @@ Met à jour la rigidité géométrique globale pour l'élément *num_elem* pour 
     #      # si on met 1 pour les CL Dirichlet -> vp =1, polluent le spectre; si on met 0 -> infty
     #      Kgeom_global[dof, dof] = 0            
               
-    return  
 
 
 def Detruit_Elem(pbEF, n_elem):
@@ -770,14 +783,43 @@ Création des éléments et assemblage des rigidités, matrice de masse, et des 
     
     if len(nodes_elem) :
         for indice, entier in enumerate(nodes_elem):
-            Creation_Elem_Assemblage(pbEF, entier[0], entier[1], entier[2], meca_elem[indice], px_py[indice])    
-            
-    return
+            pbEF.K_global_copie = Creation_Elem_Assemblage(pbEF, entier[0], entier[1], entier[2], meca_elem[indice], px_py[indice])             
 
 
+def fonct_Application_CL(pbEF, signe_penalite):
+    """ 
+    Prise en compte des conditions de Neumann et Dirichlet homogènes / non-homogènes 
+        - vérifie au préalable que les noeuds où sont appliquées les CL existent bien et qu'il n'y a pas de conflit (2 CL sur le même ddl)
+        - Neumann = vecteur forces
+        - Dirichlet homogènes = contributions nulles et pour la diagonale : rigidité unitaire, masse nulle pour ne pas polluer le spectre des VP
+        - Dirichlet non-homogènes = pénalité; 
+  
 
-def fonct_Application_CL(pbEF, forces, deplacements):
-    """ Prise en compte des conditions de Neumann et Dirichlet homogènes  """
+*Parameters*
+    
+    pbEF : instance de classe PbEF
+    
+    forces, deplacements : liste contenant les tuples [inode, ddl, amplitude]
+ 
+    signe_penalite : si -1, on retranche les contributions de pénalités dans K_global, sinon application CL standard       
+
+* Caractéristiques :*
+    - vérification que des CL ne sont pas appliquées:
+        - sur un noeud inexistant
+        - sur le même ddl (Dirichlet et Neumann) 
+    - conditions de Dirichlet  
+        - bloquées : diagonale unitaire pour rigidité, et diagonale nulle pour masse (Rigidité géométrique pas encore initialisée)
+        - non-homogènes : pénalité = 1E5 * np.max(K_global)
+        - non-homogènes et signe_penalite = -1 : on rentranche les contributions dans K_global pour utiliser dans les calculs de valeurs propres
+        - pour les vibrations (M) ou le flambage (K_geom), on traite toutes les CL Dirichlet comme homogènes - cf ci-dessous        
+    - calculs modes propres : proposition de https://bleyerj.github.io/comet-fenicsx/tours/eigenvalue_problems/buckling_3d_solid/buckling_3d_solid.html
+      si on met 1 pour les CL Dirichlet -> vp =1, polluent le spectre; si on met 0 -> infty
+
+
+    """
+
+    forces = pbEF.CL_forces
+    deplacements = pbEF.CL_deplacements
 
     # on vérifie que les noeuds où sont imposées les CL existent bien; sinon Erreur
     liste_node_temp = [sous_liste.numero for sous_liste in pbEF.nodes_global]
@@ -788,38 +830,63 @@ def fonct_Application_CL(pbEF, forces, deplacements):
     liste_node_dep = [dep_temp[0] for dep_temp in deplacements]
     if not ( all(x in liste_node_temp for x in liste_node_dep) and (all(x in liste_node_temp for x in liste_node_forces) ) ) :
             sys.exit("Une condition aux limites est imposée sur un noeud qui n'existe pas.")  
-                         
-    indices = [Renvoi_index_node(row[0], pbEF.nodes_global) * 3 + (row[1] - 1) for row in forces]
-    values = [row[2] for row in forces]
-    # if not force[0:] in 
-    pbEF.F_con[indices] = values
-    # print(indices, values)
-    pbEF.F_tot = pbEF.F_con + pbEF.F_rep
-    
-    pbEF.fixed_dofs = [Renvoi_index_node(row[0],pbEF.nodes_global)*3+(row[1]-1) for row in deplacements]
 
-    """ Prise en compte des conditions Dirichlet homogènes  """
-    # pour les inconnues bloquées : diagonale unitaire pour rigidité, et diagonale nulle pour masse
-    for dof in pbEF.fixed_dofs:
-         # pbEF.fixed_dofs = fixed_dofs
-        pbEF.K_global[dof, :] = 0
-        pbEF.K_global[:, dof] = 0
-        pbEF.K_global[dof, dof] = 1
+    # Neumann      
+    liste_dof_forces = [Renvoi_index_node(row[0], pbEF.nodes_global) * 3 + (row[1] - 1) for row in forces]                   
+    # indices = [Cl.Renvoi_index_node(row[0], pbEF.nodes_global) * 3 + (row[1] - 1) for row in forces]
+    liste_mag_forces = [row[2] for row in forces]
+    pbEF.F_con[liste_dof_forces] = liste_mag_forces
+
+    # Dirichlet 
+    # Prise en compte des conditions Dirichlet homogènes ou non
+    # une seule liste pour tous les dofs - car utilisation dans Kgeom et M, et toutes CL Dirichlet traitées comme homogènes pour Kgeom et M
+    liste_fixed_dofs = [Renvoi_index_node(row[0],pbEF.nodes_global)*3+(row[1]-1) for row in deplacements]
+    liste_mag_dofs = [dep_temp[2] for dep_temp in deplacements]
+    
+    # On vérifie que des CL de Dirichlet et Neumann ne sont pas imposées sur le même ddl
+    if any(x in liste_dof_forces for x in liste_fixed_dofs):
+        sys.exit("ATTENTION : conditions de Dirichlet et Neumann appliquées sur le même ddl.")
+
+    pbEF.fixed_dofs = liste_fixed_dofs
+    pbEF.liste_dofs_imposes = [sous_liste for sous_liste in deplacements if sous_liste[2] != 0]
+
+    penalite = 0.
+    if pbEF.liste_dofs_imposes : # si besoin de pénaliser CL Dirichlet
+        if signe_penalite != -1 : # pénalité fixée une fois pour toutes, sinon le terme pénalisé devient max(K_ij) pour la suite
+            pbEF.penalite = np.max(pbEF.K_global) * 1.E5
+            pbEF.F_tot = pbEF.F_con + pbEF.F_rep # sinon on modifie F_tot qui contient des termes pénalisés
+        penalite = pbEF.penalite
+
+    
+    for ind_dof in range(len(deplacements)):
+        dof = liste_fixed_dofs[ind_dof]
+        if  liste_mag_dofs[ind_dof] != 0 : # CL Dirichlet non-homogène => pénalité 
+            pbEF.K_global[dof, dof] += signe_penalite * penalite          
+            pbEF.F_tot[dof] += signe_penalite * penalite * liste_mag_dofs[ind_dof]
+                
+        elif signe_penalite != -1 :            
+           # pour les inconnues bloquées : diagonale unitaire pour rigidité, et diagonale nulle pour masse (K_geom traité dans MAJ_Rigidite_Geom)
+           # pour les vibrations ou le flambage, on traite toutes les CL Dirichlet comme homogènes -cf ci-dessous            
+            pbEF.K_global[dof, :] = 0
+            pbEF.K_global[:, dof] = 0
+            pbEF.K_global[dof, dof] = 1
+                
+            pbEF.M_global[dof, :] = 0
+            pbEF.M_global[:, dof] = 0
+            pbEF.M_global[dof, dof] = 0
         
-        pbEF.M_global[dof, :] = 0
-        pbEF.M_global[:, dof] = 0
-        pbEF.M_global[dof, dof] = 0
+            # proposition de https://bleyerj.github.io/comet-fenicsx/tours/eigenvalue_problems/buckling_3d_solid/buckling_3d_solid.html
+            # si on met 1 pour les CL Dirichlet -> vp =1, polluent le spectre; si on met 0 -> infty
+            # 
+            # comme la mise à jour de cette rigidité ne modifie pas les contributions liées aux CL Dirichlet, 
+            # et que K_geom_global est initialisé à 0, on ne touche rien
+            # pbEF.Kgeom_global[dof, :] = 0
+            # pbEF.Kgeom_global[:, dof] = 0
+            # pbEF.Kgeom_global[dof, dof] = 0
         
-         # proposition de https://bleyerj.github.io/comet-fenicsx/tours/eigenvalue_problems/buckling_3d_solid/buckling_3d_solid.html
-         # si on met 1 pour les CL Dirichlet -> vp =1, polluent le spectre; si on met 0 -> infty
-         # 
-         # comme la mise à jour de cette rigidité ne modifie pas les contributions liées aux CL Dirichlet, 
-         # et que K_geom_global est initialisé à 0, on ne touche rien
-         # pbEF.Kgeom_global[dof, :] = 0
-         # pbEF.Kgeom_global[:, dof] = 0
-         # pbEF.Kgeom_global[dof, dof] = 0
-        
-        pbEF.F_tot[dof] = 0
+            pbEF.F_tot[dof] = 0
+            
+    return pbEF.F_con + pbEF.F_rep
      
 
 ## ======================================== Fonctions pour tester les poutres  ========================
@@ -916,6 +983,7 @@ On raisonne par élément : affichage à partir des informations des éléments 
 pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (pas grave !)
 
 *Mot-clef :*
+
 - 'u': déplacement
 - 'X' : mode propre
 - 'e': déformation
@@ -936,6 +1004,7 @@ pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (p
         
     vp : 
         rang de la valeur & vecteur propre à afficher si mot_clef champ = 'X'; 1ère VP par défaut
+
     *Returns*
    
     ax : figure
@@ -974,7 +1043,7 @@ pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (p
     num_elem = []
     x1_elem = []
     x2_elem = []
-   
+       
     # Palette de couleurs
     if colormap : 
         cmap = plt.cm.get_cmap(colormap)
@@ -998,6 +1067,7 @@ pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (p
         
         dx1[i] = nodes_global[i].u1
         dx2[i] = nodes_global[i].u2
+        
     # amplification des déplacements tel que le déplacement maxi représente 5% de la dimension maximal.
     # arrondi à la dizaine. 
     ampli = 0.05* max(max(x1_node),max(x2_node)) / max(np.max(np.abs(dx1)),np.max(np.abs(dx2)))
@@ -1010,6 +1080,18 @@ pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (p
         x1_def.append(x1_node[i] + amplification_def*nodes_global[i].u1) 
         x2_def.append(x2_node[i] + amplification_def*nodes_global[i].u2)
         num_node.append(nodes_global[i].numero)
+
+    # à partir des CL Dirichlet non-homogènes, construit la liste des noeuds à afficher sur la config déformée et les textes
+    dof_Dirichlet = ['u1','u2','theta']
+    liste_dofs_imposes = pbEF.liste_dofs_imposes
+    dof_impose_text = []
+    dof_impose_coord = []
+    for dof_impose in liste_dofs_imposes:
+        text = f"* {dof_Dirichlet[dof_impose[1]-1]}_{dof_impose[0]} = {dof_impose[2]}"
+        position = Renvoi_index_node(dof_impose[0],nodes_global)
+        dof_impose_text.append(text)
+        coord = [x1_def[position],x2_def[position]]
+        dof_impose_coord.append(coord)   
 
     # en fonction des champs à afficher
     ind_vecteur_affiche = affiche[mot_clef][0] 
@@ -1055,7 +1137,7 @@ pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (p
     ax.set(xlim=(lim_xmin,lim_xmax),ylim=(lim_ymin, lim_ymax) )     
     
     # Affichage des numéros d'éléments au centre de l'élément du maillage déformé pour les champs autres
-    # que la déformée : pour la déformé num_elem est vide
+    # que la déformée : pour la déformée num_elem est vide
     for xi, yi, text in zip(x1_elem, x2_elem, num_elem):
         ax.annotate(text, xy=(xi, yi), xycoords='data', xytext=(-4.5, 4.5), textcoords='offset points', 
                     color='black', fontsize=fontsize)
@@ -1133,16 +1215,20 @@ pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (p
                              head_width=head_width, head_length=head_length, fc='blue', ec='blue', \
                              length_includes_head=True, head_starts_at_zero=True)
                 elif ddl == 3:
-                    ax.plot(x1_def[indice_node], x2_def[indice_node], 'X', color='b', markersize = markersize*1.5) 
+                    ax.plot(x1_def[indice_node], x2_def[indice_node], 'X', color='b', markersize = markersize*1.95) 
     
-    # 1/ : tracé de la déformée, avec les numéros de noeuds et les numéros des éléments 
+    # 1/ : tracé de la déformée, avec les numéros de noeuds et les numéros des éléments
+    # affichage des cdtions cinématiques imposées
+    for coord, text in zip(dof_impose_coord, dof_impose_text ):
+        ax.annotate(text, xy=(coord[0], coord[1]), xycoords='data', xytext=(+5., +5), textcoords='offset points', color='g', fontsize=fontsize+0)
+        
     if mot_clef == 'u' or mot_clef == 'X' :
         vecteur_affiche = np.sqrt(np.power(dx1,2) + np.power(dx2,2))
         norm = Normalize(vmin=min(vecteur_affiche), vmax=max(vecteur_affiche)) # fonction pour convertir entre 0 et 1 les valeurs entre ces bornes                  
         # Affichage des numéros de noeuds 
         for xi, yi, text in zip(x1_def, x2_def, num_node):
             ax.annotate(text, xy=(xi, yi), xycoords='data', xytext=(-5., -5), textcoords='offset points', color='r', fontsize=fontsize-2)
-
+                
        # Déformée
         for ind, elem in enumerate(elem_global):
             # ax.annotate(str(elem.num_elem), xy=(elem.node1.x1, elem.node1.x2), xycoords='data', xytext=(-5., -5), 
@@ -1200,12 +1286,11 @@ pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (p
         
         formatter = ticker.ScalarFormatter(useMathText=True)
         formatter.set_powerlimits((-2, 2))
-        formatter = ticker.FormatStrFormatter('%.2e')  # Formate les ticks avec 2 décimales en notation scientifique
         cbar.ax.yaxis.set_major_formatter(formatter)
         cbar.update_ticks()  # Mettre à jour les ticks
-        # cbar.ax.yaxis.set_major_formatter(formatter)
-        # cbar.ax.yaxis.offsetText.set_fontsize(fontsize)
-        # cbar.update_ticks()
+        cbar.ax.yaxis.set_major_formatter(formatter)
+        cbar.ax.yaxis.offsetText.set_fontsize(fontsize)
+        cbar.update_ticks()
         # Position de la colorbar
         pos = cbar.ax.get_position()
         cbar.ax.set_position([pos.x0 - 0.05, pos.y0 - 0.0, pos.width * 0.6, pos.height * 0.8])  # Définir la position et la taille de la colorbar
@@ -1258,23 +1343,27 @@ class pbEF_poutre:
 
 *Méthodes :*
     1. initialisation (maillage et assemblage), 
-    2. et 2'/ définition des CL Neumann et Dirichlet prise en compte des conditions de Dirichlet, 
+    2. prise en compte des CL Neumann et Dirichlet (homgènes et non-homogènes), 
     3. résolution,
     4. calculs déformations et efforts internes : utilise fonction 'Calcul_Def_Eff' définie dans 'BWB_Classes.py'
     5. affichage = utilise fonction 'Affichage' définie dans 'BWB_Classes.py'
     6. mise à jour raideur suite à mise à jour des propriétés physiques d'un élément
     
-*Remarque :* la discrétisation spatiale maillage et les conditions aux limites ne changent pas pour une instance pbEF; le maillage EF peut changer !
+* Remarque 1:* la discrétisation spatiale et les conditions aux limites ne changent pas pour une instance pbEF; le maillage EF peut changer !
+
+* Remarque 2 :* l'utilisation de pénalité pour imposer les CL Dirichlet non-homogènes implique retrancher cette pénalité après la résolution du problème statique - dans pbEF.Resol()
      
 """
 
-    def __init__(self, nodes_global, nodes_elem, props_elem):   
+    def __init__(self, nodes_global, nodes_elem, props_elem):  
+        # grandeurs du problème
         self.nodes_global = nodes_global
         self.nodes_elem = nodes_elem
         self.elem_global = []
         self.props_elem = props_elem
         nb_nodes = self.nb_nodes = len(nodes_global)
-        
+
+        # vecteurs et matrices du système algébrique 
         total_dofs = self.total_dofs = 3*nb_nodes
         self.K_global = np.zeros((total_dofs,total_dofs))
         self.Kgeom_global = np.zeros((total_dofs,total_dofs))
@@ -1283,7 +1372,20 @@ class pbEF_poutre:
         self.F_rep = np.zeros(total_dofs)
         self.F_tot = np.zeros(total_dofs)
         
+        # copies pour calculer les réactions à partir des grandeurs avant prise en compte des CL Dir
+        self.dofs = np.zeros(total_dofs)
+        self.reactions = np.zeros(total_dofs)
+        self.K_global_copie = np.zeros((total_dofs,total_dofs))
+        self.F_tot_copie = np.zeros(total_dofs)
+
+        # conditions aux limites
+        self.penalite = 0.
+        self.CL_forces = []
+        self.CL_deplacements = []
         self.fixed_dofs = []
+        self.liste_dofs_imposes = []
+
+        # valeurs propres et modes propres
         self.vp_min = []
         self.mode_min = []
         self.vibration = False
@@ -1293,32 +1395,44 @@ class pbEF_poutre:
        Génére les grandeurs globales (vecteurs, matrices) à partir d'une liste de paire de noeuds (et numéro d'élément associé)
 
        * Retourne :* les vecteurs et matrices globaux assemblés
-       -------------
+      
 
        """
+       
         fonct_Maillage_Assemblage(self)
            
         return 
                         
     
-    def Application_CL(self, forces, deplacements):
-        """ Prise en compte des conditions de Neumann et Dirichlet homogènes  
-        - vérifie au préalable que les noeuds où sont appliquées les CL existent bien
-        - Neumann = vecteurs forces
-        - Dirichlet = contributions nulles et pour la diagonale : rigidité unitaire, masse nulle pour ne pas polluer le spectre des VP"""
+    def Application_CL(self, signe_penalite = 1):
+        """ Prise en compte des conditions de Neumann et Dirichlet homogènes / non-homogènes 
+        - vérifie au préalable que les noeuds où sont appliquées les CL existent bien et qu'il n'y a pas de conflit
+        - Neumann = vecteur forces
+        - Dirichlet homogènes = contributions nulles et pour la diagonale : rigidité unitaire, masse nulle pour ne pas polluer le spectre des VP
+        - Dirichlet non-homogènes = pénalité; 
+        - signe_penalite = si -1, on retranche les contributions de pénalités dans K_global
 
-        fonct_Application_CL(self, forces, deplacements)
+        """
+
+        self.F_tot_copie = fonct_Application_CL(self, signe_penalite)
 
 
     def Resol(self):
-        """ Résout le système d'équations linéaires avec les conditions de Dirichlet homogènes imposées 
+        """ Résout le système d'équations linéaires 
+        - si conditions de Dirichlet homogènes imposées, retranche les pénalités après résolution
+        - met à jour les déplacements 
         
-        ..  attribute : K_global, Kgeom_global, F_tot, dofs
+        ..  attribute : K_global, F_tot, dofs (vecteur déplacements), nodes_global (liste des noeuds)
 
-            """
+        """
          
         dofs = np.zeros(self.total_dofs)
         dofs = np.linalg.solve(self.K_global, self.F_tot)
+        
+        if self.penalite : #retranche la pénalité de K_global et F_tot
+            fonct_Application_CL(self, -1) 
+        
+        self.dofs = dofs
               
         # met à jour les dofs (u1,u2,theta) dans la structure nodes_global - et donc modifie les DOFS des noeuds attachés aux éléments
         for indice in range(self.nb_nodes):
@@ -1331,7 +1445,12 @@ class pbEF_poutre:
     def Calcul_Def_Eff(self):
         """ Calcul des déformations et les efforts généralisés par élément - appel fonct_Calcul_Def_Eff()"""
         fonct_Calcul_Def_Eff(self)
-        return self.elem_global   
+        return self.elem_global 
+    
+    def Calcul_Reactions(self):
+        """ Calcul les réactions associées aux CL de Dirichlet : Rb = (K_global * u - F_tot) """
+        self.reactions = np.dot(self.K_global_copie,self.dofs) - self.F_tot_copie
+        return self.reactions     
     
     def MAJ_Rigidite_Geom(self):
         """ Mise à jour des rigidités géométriques connaissant les efforts normaux du problème initilal - appel MAJ_Rigidite_Geom_elem """
@@ -1349,45 +1468,6 @@ class pbEF_poutre:
         return fonct_Affichage(self, mot_clef, colormap, vp)
     
 
-
-
-# def fonct_Assemble_et_CL_Poutre(F_con, px, py, fixed_dofs, pbEF):
-#     """
-# 1/ Calcul les rigidités et efforts répartis, 
-# 2/ Applique les CL Neuman (concentrees) et Dirichlet 
-# *Retourne* les structures globales modifiées : rigidités, efforts, liste éléments, ...
-#     """
-#     # global nodes_global, K_global, Kgeom_global, M_global, elem_global, F_rep, F_tot    
-
-#     nodes_global = pbEF.nodes_global
-#     K_global = pbEF.Kglobal
-#     Kgeom_global = pbEF.Kgeom_global
-#     M_global = pbEF.M_global
-#     elem_global = pbEF.elem_global
-#     F_rep = pbEF.F_rep
-#     F_tot = pbEF.F_con
-
-#     Nl = len(nodes_global)-1
-
-#     for eli in range(Nl):
-#         Creation_Elem_Assemblage(eli+1, eli+1, eli+2, Meca_elem, px, py, pbEF)  
- 
-#     F_tot = F_con + F_rep
-                  
-#     for dof in fixed_dofs:
-#          K_global[dof, :] = 0
-#          K_global[:, dof] = 0
-#          K_global[dof, dof] = 1
-
-#          Kgeom_global[dof, :] = 0
-#          Kgeom_global[:, dof] = 0
-#          # proposition de https://bleyerj.github.io/comet-fenicsx/tours/eigenvalue_problems/buckling_3d_solid/buckling_3d_solid.html
-#          # si on met 1 pour les CL Dirichlet -> vp =1, polluent le spectre; si on met 0 -> infty
-#          Kgeom_global[dof, dof] = 0
-         
-#          F_tot[dof] = 0        
-                          
-#     return K_global, Kgeom_global, M_global, elem_global, F_tot
 
 
 
