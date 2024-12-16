@@ -50,7 +50,7 @@ Classes et utilitaires pour résolution statique + charges de flambage + modes v
     
     *Méthodes* = construction d'un élément avec calcul de ses grandeurs; mises à jour si changement propriétés et/ou pré-charge flambage, destruction
 
-- **Classe pbEF_poutre** = = attributs et méthodes de tout le problème. Le passage des variables se fait par référence en interne à l'objet. Pas de variables globales.   
+- **Classe pbEF_poutre** = Attributs et méthodes de tout le problème. Le passage des variables se fait par référence en interne à l'objet. Pas de variables globales.   
     *Structures de stockage* : 
         
     - elem_global = liste qui contient les éléments, 
@@ -152,8 +152,7 @@ import sys
 
 """Définition de la classe Node : numéro, coordonnées, inconnues cinématiques, position dans la liste"""
 class Node:
-    """ Classe Node
-    
+    """    
     .. attribute:: numero : int
     .. attribute:: x1, x2 : (float,float) 
     
@@ -188,7 +187,7 @@ class Node:
 
 
 def Renvoi_index_node(n_node, liste):
-    """ renvoi l'indice du noeud n_node dans la liste de noeuds 'liste' """
+    """ Renvoi l'indice du noeud n_node dans la liste de noeuds 'liste' """
     for i in range(len(liste)):
         if liste[i].numero == n_node:
             return i  # Renvoie la position de l'élément si trouvé
@@ -218,7 +217,10 @@ def calcul_kel(alpha, beta, C, S, le):
     return kel_elem
     
 def calcul_fe(C, S, le, px, py ):
-    """ Second membre des efforts répartis recalculé avec changement de base """
+    """ Second membre des efforts répartis recalculé avec changement de base 
+    
+    .. attribute :: fe : np.array(6)
+    """
     return (le/2) * np.array([px*C-py*S, -px*S+py*C, py*le/6, px*C-py*S, -px*S+py*C, -py*le/6])
 
 def calcul_kg(C, S, le, Effort_N):
@@ -264,9 +266,7 @@ def calcul_M(Smasse, C, S, le):
 
 class Elem:
     '''
-    Classe Elément.
-
-    Les noeuds (de type Node) inode1 et inode2 existent et sont utilisés
+    *Remarque :* Les noeuds (de type Node) inode1 et inode2 existent et sont utilisés
 
     .. attribute:: num_elem : int
     .. attribute:: inode1, inode 2 : int
@@ -426,30 +426,43 @@ class Elem:
 """
 """ 
 1/
-Calcul des caracteristiques  géométriques des courbes décrivant les peaux
+Calcul des caracteristiques géométriques des courbes décrivant les peaux
 - cercle qui passe par les points (0,0),(l,h),(2l,0):
 - Polynômes de fit  
 """
 def y_cercle(x1,x1_c,x2_c,R2):
-    """ Calcul des caracteristiques  géométriques des courbes décrivant les peaux
-    - cercle qui passe par les points (0,0),(l,h),(2l,0):    x1_c = l, x2_c = (h^2-l^2)/2h et R^2 = (h^2+l^2/2h)^2
-    Pour une abscisse x1, on calcule la plus grande racine x2_max : (x2 - x2c)^2 - R^2 - (x1 - x1_c)^2 =0 => x2^2 - 2 x2 x2_c + x2_c^2 - (R^2 + (x1 - x1_c)^2)
+    """ Calcul des caracteristiques géométriques des courbes décrivant les peaux du BWB
+
+        - cercle qui passe par les points (0,0),(l,h),(2l,0):    x1_c = l, x2_c = (h^2-l^2)/2h et R^2 = (h^2+l^2/2h)^2
+        - pour une abscisse x1, on calcule la plus grande racine x2_max : (x2 - x2c)^2 - R^2 - (x1 - x1_c)^2 =0 => x2^2 - 2 x2 x2_c + x2_c^2 - (R^2 + (x1 - x1_c)^2)
     """
     rac_delta = np.sqrt(R2-(x1-x1_c)**2)
     return x2_c + rac_delta  
 
 def y_inf(xi):
+    """ Calcul des caracteristiques géométriques des courbes décrivant les peaux du BWB
+
+        *peau inférieure* fittée par un polynôme de degrés 7
+        
+        *Retourne :* altitude
+    """    
     return (-0.00011075285292718527*xi**7+0.002068379319946006*xi**6+-0.015056981533807745*xi**5 
         + 0.05141645527951446*xi**4+-0.07847883297149826*xi**3 +0.07666880082908949*xi**2 + -0.018798143630654435*xi
         -0.8637973132408278)
     
 def y_sup(xi):
+    """ Calcul des caracteristiques géométriques des courbes décrivant les peaux du BWB
+
+        *peau supérieure* fittée par un polynôme de degrés 7
+        
+        *Retourne :* altitude
+    """ 
     return (0.0003557519035056747*xi**7 - 0.0064267583698702745*xi**6 + 0.044158679925716184*xi**5 
             - 0.13889850173484505*xi**4 + 0.18553509121476225*xi**3 - 0.09162182118970996*xi**2 + 
             0.025386206141218705*xi + 0.6771458904146 )
 
 def Renvoi_index_elem(n_elem, liste):
-    """ renvoi l'indice dans la liste elem_global d'un élément de numéro n_elem """
+    """ Renvoi l'indice dans la liste elem_global d'un élément de numéro n_elem """
     for i in range(len(liste)):
         if liste[i].num_elem == n_elem:
             return i  # Renvoie la position de l'élément si trouvé
@@ -470,9 +483,10 @@ les connectivités (3 colonnes : num_elem, noeud1, noeud2)
 
 *Retourne :* la liste des noeuds 'nodes_global' et la connectivité des éléments 'nodes_elem'
 
-** Vérifications ** : 
-    - 1 tous les noeuds nécessaires pour construire les éléments existent; sinon arrêt et affichage Erreur
-    - 2 les noeuds non utilisés sont supprimés - message d'avertissement
+*Vérifications :* 
+    1. tous les noeuds nécessaires pour construire les éléments existent; sinon arrêt et affichage Erreur
+    2. les noeuds non utilisés sont supprimés - message d'avertissement
+    
     """
     
     nodes_global=[]
@@ -533,8 +547,10 @@ les connectivités (3 colonnes : num_elem, noeud1, noeud2)
 def Creation_Elem_Assemblage(pbEF, num_elem, inode1, inode2, pptes_meca, px_py):
 
     """ 
-Création d'un élement et intégration de sa raideur élastique, sa matrice de masse, et efforts dans les grandeurs globales, en ne prenant en compte les contritions correspondant aux CL Dirichlet (permet d'ajouter des éléments a posteriori)
-* Remarque :* La rigidité géométrique est initialisée à 0, elle sera mise à jour après le calcul des pré-contraintes dans MAJ_Rigidite_geom_Elem(num_elem)
+Création d'un élement et intégration de sa raideur élastique, sa matrice de masse, et efforts dans les grandeurs globales, en ne prenant pas en compte les contributions correspondant aux CL Dirichlet (permet d'ajouter des éléments a posteriori)
+
+*Remarque* : La rigidité géométrique est initialisée à 0, elle sera mise à jour après le calcul des pré-contraintes dans MAJ_Rigidite_geom_Elem(num_elem)
+
 *Parameters*
 
     num_elem : int
@@ -550,7 +566,7 @@ Création d'un élement et intégration de sa raideur élastique, sa matrice de 
     px, py : float
         Charges linéiques longitudinale et transverse dans le repère de l'élément (orientation donnée par l'ordre des noeuds)
 
-*Returns*
+*Retourne*
 
     None.
 
@@ -598,8 +614,10 @@ def Modif_Proprietes_Elem (pbEF, num_elem, ES_el, EI_el, Smasse_el):
     """
 Met à jour la rigidité élastique GLOBALE quand les 
 propriétés méca ES, EI ou Smasse d'un élément changent
-*Remarque 1 :* On ne met pas à jour la rigidité géométrique qui sera mise à jour de toute façon quand les pré-contraintes auront été recalculées - cf fonction MAJ_rigidite_geometrique
-*Remarque 2 :* Précaution à prendre, avant de retrancher les contributions puis de les remplacer, s'assurer qu'elles ne correspondent pas à des ddls dans les CL de Dirichlet    
+
+* *Remarque 1* : On ne met pas à jour la rigidité géométrique qui sera mise à jour de toute façon quand les pré-contraintes auront été recalculées - cf fonction MAJ_rigidite_geometrique
+
+* *Remarque 2* : Précaution à prendre, avant de retrancher les contributions puis de les remplacer, s'assurer qu'elles ne correspondent pas à des ddls dans les CL de Dirichlet    
 
 *Parameters*
 
@@ -612,7 +630,7 @@ propriétés méca ES, EI ou Smasse d'un élément changent
     S_masse : float
         
 
-*Returns*
+*Retourne*
 
     None.
 
@@ -660,17 +678,17 @@ propriétés méca ES, EI ou Smasse d'un élément changent
 def fonct_MAJ_rigidite_geom_elem(pbEF, num_elem):
     """
 Met à jour la rigidité géométrique globale pour l'élément *num_elem* pour le calcul des charges critiques : 
-    retranche puis remplace ses composantes dans la rigidité globale par Effort_N_(repère-local)*kg_e[,] et met à jours les CL
+retranche puis remplace ses composantes dans la rigidité globale par Effort_N_(repère-local)*kg_e[,] et met à jours les CL
 
 *Méthode :* On retranche les contributions, avant d'ajouter les nouvelles contributions    
 
 *Remarque :* Précaution à prendre, avant de retrancher les contributions puis de les remplacer, s'assurer qu'elles ne correspondent pas à des ddls dans les CL de Dirichlet (contributions nulles dans ce cas)    
 
-*Parameters*
+*Parametres*
 
     num_elem : int
 
-*Returns*
+*Retourne*
    
     None.
 
@@ -718,7 +736,7 @@ Supprime les contributions de l'élément n_elem et le supprime de la liste glob
     n_elem : int
         
 
-*Returns*
+*Retourne*
    
     None.
 
@@ -735,8 +753,10 @@ Supprime les contributions de l'élément n_elem et le supprime de la liste glob
 def fonct_Calcul_Modes_Propres(pbEF, mot_clef, n_modes,):
     """
     Calcul des 'n_modes' pulsations et modes propres
-    * Variable mot_clef :* prend 2 valeurs 'Flambage' ou 'Vibration' 
-    * Returns :* n_modes premières valeurs propres et vecteurs propres attachés à pbEF
+    
+    *Variable mot_clef :* prend 2 valeurs 'Flambage' ou 'Vibration'
+    
+    *Retourne :* n_modes premières valeurs propres et vecteurs propres attachés à pbEF
     """    
 
     eigenvects=[]
@@ -788,32 +808,32 @@ Création des éléments et assemblage des rigidités, matrice de masse, et des 
 
 def fonct_Application_CL(pbEF, signe_penalite):
     """ 
-    Prise en compte des conditions de Neumann et Dirichlet homogènes / non-homogènes 
-        - vérifie au préalable que les noeuds où sont appliquées les CL existent bien et qu'il n'y a pas de conflit (2 CL sur le même ddl)
-        - Neumann = vecteur forces
-        - Dirichlet homogènes = contributions nulles et pour la diagonale : rigidité unitaire, masse nulle pour ne pas polluer le spectre des VP
-        - Dirichlet non-homogènes = pénalité; 
+Prise en compte des conditions de Neumann et Dirichlet homogènes / non-homogènes 
+
+    - vérifie au préalable que les noeuds où sont appliquées les CL existent bien et qu'il n'y a pas de conflit (2 CL sur le même ddl)
+    - Neumann = vecteur forces
+    - Dirichlet homogènes = contributions nulles et pour la diagonale : rigidité unitaire, masse nulle pour ne pas polluer le spectre des VP
+    - Dirichlet non-homogènes = pénalité; 
   
 
-*Parameters*
+*Parametres*
     
-    pbEF : instance de classe PbEF
-    
-    forces, deplacements : liste contenant les tuples [inode, ddl, amplitude]
- 
-    signe_penalite : si -1, on retranche les contributions de pénalités dans K_global, sinon application CL standard       
+- pbEF : instance de classe PbEF
+- forces, deplacements : liste contenant les tuples [inode, ddl, amplitude]
+- signe_penalite : si -1, on retranche les contributions de pénalités dans K_global, sinon application CL standard       
 
-* Caractéristiques :*
-    - vérification que des CL ne sont pas appliquées:
-        - sur un noeud inexistant
-        - sur le même ddl (Dirichlet et Neumann) 
-    - conditions de Dirichlet  
-        - bloquées : diagonale unitaire pour rigidité, et diagonale nulle pour masse (Rigidité géométrique pas encore initialisée)
-        - non-homogènes : pénalité = 1E5 * np.max(K_global)
-        - non-homogènes et signe_penalite = -1 : on rentranche les contributions dans K_global pour utiliser dans les calculs de valeurs propres
-        - pour les vibrations (M) ou le flambage (K_geom), on traite toutes les CL Dirichlet comme homogènes - cf ci-dessous        
-    - calculs modes propres : proposition de https://bleyerj.github.io/comet-fenicsx/tours/eigenvalue_problems/buckling_3d_solid/buckling_3d_solid.html
-      si on met 1 pour les CL Dirichlet -> vp =1, polluent le spectre; si on met 0 -> infty
+*Caractéristiques :*
+
+- vérification que des CL ne sont pas appliquées:
+    - sur un noeud inexistant
+    - sur le même ddl (Dirichlet et Neumann) 
+- conditions de Dirichlet  
+    - bloquées : diagonale unitaire pour rigidité, et diagonale nulle pour masse (Rigidité géométrique pas encore initialisée)
+    - non-homogènes : pénalité = 1E5 * np.max(K_global)
+    - non-homogènes et signe_penalite = -1 : on rentranche les contributions dans K_global pour utiliser dans les calculs de valeurs propres
+    - pour les vibrations (M) ou le flambage (K_geom), on traite toutes les CL Dirichlet comme homogènes - cf ci-dessous        
+- calculs modes propres : proposition de https://bleyerj.github.io/comet-fenicsx/tours/eigenvalue_problems/buckling_3d_solid/buckling_3d_solid.html
+  si on met 1 pour les CL Dirichlet -> vp =1, polluent le spectre; si on met 0 -> infty
 
 
     """
@@ -831,6 +851,13 @@ def fonct_Application_CL(pbEF, signe_penalite):
     if not ( all(x in liste_node_temp for x in liste_node_dep) and (all(x in liste_node_temp for x in liste_node_forces) ) ) :
             sys.exit("Une condition aux limites est imposée sur un noeud qui n'existe pas.")  
 
+    # on vérifie que le DDL existe aussi; sinon Erreur
+    liste_ddl_dep = [dep_temp[1] for dep_temp in deplacements]
+    liste_ddl_F = [forces_temp[1] for forces_temp in forces]
+    
+    if not ( (all(x in [1,2,3] for x in liste_ddl_F) ) and ( all(x in [1,2,3] for x in liste_ddl_dep) ) ):
+            sys.exit("Une des conditions aux limites est appliquée sur un ddl qui n'existe pas.")  
+            
     # Neumann      
     liste_dof_forces = [Renvoi_index_node(row[0], pbEF.nodes_global) * 3 + (row[1] - 1) for row in forces]                   
     # indices = [Cl.Renvoi_index_node(row[0], pbEF.nodes_global) * 3 + (row[1] - 1) for row in forces]
@@ -856,7 +883,8 @@ def fonct_Application_CL(pbEF, signe_penalite):
             pbEF.penalite = np.max(pbEF.K_global) * 1.E5
             pbEF.F_tot = pbEF.F_con + pbEF.F_rep # sinon on modifie F_tot qui contient des termes pénalisés
         penalite = pbEF.penalite
-
+    else : # même sans dof impose, on doit calculer F_tot
+        pbEF.F_tot = pbEF.F_con + pbEF.F_rep 
     
     for ind_dof in range(len(deplacements)):
         dof = liste_fixed_dofs[ind_dof]
@@ -894,7 +922,9 @@ def fonct_Application_CL(pbEF, signe_penalite):
 def fonct_Maille_Poutre(lp, Nl , angle):
     """
 Maille une poutre de longueur lp avec Nl éléments, formant éventuellement un angle par rapport à x_1 
+
 *Retourne :* la liste des noeuds et la liste des connectivités initialisées
+
     """
     
     nodes_global = []
@@ -919,10 +949,12 @@ Maille une poutre de longueur lp avec Nl éléments, formant éventuellement un 
 def fonct_Calcul_Def_Eff(pbEF):
     """
 Pour tous les éléments, calcul les déformations et contraintes généralisées par élément dans le repère local - supposé constant au centre de l'élément (courbure) 
-* Remarque :* Nécessite d'avoir mis à jour les déplacements aux noeuds - dans pb.Resol()
-*Returns*
+
+*Remarque :* Nécessite d'avoir mis à jour les déplacements aux noeuds - dans pb.Resol()
+
+*Retourne*
     
-    elem_global : list
+    elem_global : liste
         liste globale des éléments
 
     """
@@ -975,9 +1007,10 @@ pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (p
 def fonct_Affichage(pbEF, mot_clef, colormap = 'coolwarm', vp = 1):
     """
 *Affichages :* maillage initial et champ 'mot_clef' sur le maillage déformé (linéaire) et les efforts imposés
-** Mot-clefs optionnels **
--* colormap :* couleur de l'affichage de la colorbar affichée pour champ <> 'u''; si vide ne pas afficher 
--* vp :* rang de la valeur propre et du vecteur propres à tracer, si champ = 'X'; rang = 1 par défaut
+
+*Mot-clefs optionnels*
+    - *colormap :* couleur de l'affichage de la colorbar affichée pour champ != 'u''; si vide ne pas afficher 
+    - *vp :* rang de la valeur propre et du vecteur propres à tracer, si champ = 'X'; rang = 1 par défaut
 
 On raisonne par élément : affichage à partir des informations des éléments tous parcourus;  
 pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (pas grave !)
@@ -994,22 +1027,15 @@ pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (p
 - 'EI' : rigidité de flexion
 - Smasse' : masse de la section     
 
-    *Parameters*
-    
-    mot_clef : char
-        Définit le champ à afficher
-        
-    colormap : 
-        définit le style de couleur de la colormap et indique s'il faut l'afficher; chaine vide <=> ne pas afficher
-        
-    vp : 
-        rang de la valeur & vecteur propre à afficher si mot_clef champ = 'X'; 1ère VP par défaut
+*Parametres*
 
-    *Returns*
-   
-    ax : figure
-        
-    """
+- mot_clef : (char) Définit le champ à afficher 
+- colormap : Définit le style de couleur de la colormap et indique s'il faut l'afficher; chaine vide <=> ne pas afficher
+- vp : Rang de la valeur & vecteur propre à afficher si mot_clef champ = 'X'; 1ère VP par défaut
+
+*Retourne* ax : figure
+    
+"""
 
 
     F_tot = pbEF.F_tot
@@ -1349,9 +1375,9 @@ class pbEF_poutre:
     5. affichage = utilise fonction 'Affichage' définie dans 'BWB_Classes.py'
     6. mise à jour raideur suite à mise à jour des propriétés physiques d'un élément
     
-* Remarque 1:* la discrétisation spatiale et les conditions aux limites ne changent pas pour une instance pbEF; le maillage EF peut changer !
+*Remarque 1:* la discrétisation spatiale et les conditions aux limites ne changent pas pour une instance pbEF; le maillage EF peut changer !
 
-* Remarque 2 :* l'utilisation de pénalité pour imposer les CL Dirichlet non-homogènes implique retrancher cette pénalité après la résolution du problème statique - dans pbEF.Resol()
+*Remarque 2 :* l'utilisation de **pénalité** pour imposer les CL Dirichlet non-homogènes implique de retrancher cette pénalité après la résolution du problème statique - dans pbEF.Resol()
      
 """
 
@@ -1394,23 +1420,24 @@ class pbEF_poutre:
         """
        Génére les grandeurs globales (vecteurs, matrices) à partir d'une liste de paire de noeuds (et numéro d'élément associé)
 
-       * Retourne :* les vecteurs et matrices globaux assemblés
+       *Retourne :* RIEN
       
 
        """
        
-        fonct_Maillage_Assemblage(self)
+        return fonct_Maillage_Assemblage(self)
            
-        return 
+        # return 
                         
     
     def Application_CL(self, signe_penalite = 1):
         """ Prise en compte des conditions de Neumann et Dirichlet homogènes / non-homogènes 
-        - vérifie au préalable que les noeuds où sont appliquées les CL existent bien et qu'il n'y a pas de conflit
-        - Neumann = vecteur forces
-        - Dirichlet homogènes = contributions nulles et pour la diagonale : rigidité unitaire, masse nulle pour ne pas polluer le spectre des VP
-        - Dirichlet non-homogènes = pénalité; 
-        - signe_penalite = si -1, on retranche les contributions de pénalités dans K_global
+      
+            - vérifie au préalable que les noeuds où sont appliquées les CL existent bien et qu'il n'y a pas de conflit
+            - Neumann = vecteur forces
+            - Dirichlet homogènes = contributions nulles et pour la diagonale : rigidité unitaire, masse nulle pour ne pas polluer le spectre des VP
+            - Dirichlet non-homogènes = pénalité; 
+            - signe_penalite = si -1, on retranche les contributions de pénalités dans K_global et F_tot
 
         """
 
@@ -1418,11 +1445,17 @@ class pbEF_poutre:
 
 
     def Resol(self):
-        """ Résout le système d'équations linéaires 
-        - si conditions de Dirichlet homogènes imposées, retranche les pénalités après résolution
-        - met à jour les déplacements 
+        """ Résout le système d'équations linéaires        
+            - si conditions de Dirichlet homogènes imposées, retranche les pénalités après résolution
+            - met à jour les déplacements 
         
-        ..  attribute : K_global, F_tot, dofs (vecteur déplacements), nodes_global (liste des noeuds)
+        ..  attribute :: arguments self : 
+            - K_global, 
+            - F_tot, dofs (vecteur déplacements), 
+            - nodes_global (liste des noeuds)
+        
+        *Retourne :* nodes_global, liste global des noeuds mis à jour
+
 
         """
          
@@ -1443,29 +1476,55 @@ class pbEF_poutre:
         return self.nodes_global  
     
     def Calcul_Def_Eff(self):
-        """ Calcul des déformations et les efforts généralisés par élément - appel fonct_Calcul_Def_Eff()"""
+        """ Calcul des déformations et les efforts généralisés par élément - appel fonct_Calcul_Def_Eff()
+        
+        ..  Retourne : liste globale des éléments mis à jour
+        
+ 
+        """
         fonct_Calcul_Def_Eff(self)
+        
         return self.elem_global 
     
     def Calcul_Reactions(self):
-        """ Calcul les réactions associées aux CL de Dirichlet : Rb = (K_global * u - F_tot) """
+        """ Calcul les réactions associées aux CL de Dirichlet : Rb = (K_global * u - F_tot) 
+        
+        **on travaille sur les copies de K_global et F_tot faites avec prise en compte des CL Dirichlet**
+        
+        .. Retourne : liste des réactions
+        
+        """
         self.reactions = np.dot(self.K_global_copie,self.dofs) - self.F_tot_copie
         return self.reactions     
     
     def MAJ_Rigidite_Geom(self):
-        """ Mise à jour des rigidités géométriques connaissant les efforts normaux du problème initilal - appel MAJ_Rigidite_Geom_elem """
+        """ Mise à jour des rigidités géométriques connaissant les efforts normaux du problème initilal - appel MAJ_Rigidite_Geom_elem 
+        
+        .. Retourne : liste globale des éléments mis à jour
+        
+        """
         for ind_elem, elem in enumerate(self.elem_global):
             fonct_MAJ_rigidite_geom_elem(self, ind_elem+1)
         return self.elem_global       
     
     def Calcul_Modes_Propres(self, mot_clef, n_modes):
-        """ Calcul les n_modes premières valeurs propres et modes associés - appel fonct_Calcul_Modes_Propres(mot_clef, n_modes)"""
+        """ Calcul les n_modes premières valeurs propres et modes associés - appel fonct_Calcul_Modes_Propres(mot_clef, n_modes)
+        
+        .. attributes :
+            
+            - mot_clef : 'flambage' ou 'vibrations'
+            - n_modes : nombre de modes à extraires
+            
+        .. Retourne : tableau des 'n_modes' plus petites valeurs propres et des modes propres
+        
+        """
         fonct_Calcul_Modes_Propres(self, mot_clef, n_modes)
         return self.vp_min, self.mode_min
     
     def Affichage(self, mot_clef, colormap, vp):
         """ Affichage des résultats - appel fonct_Affichage(mot_clef, colorbar, rang valeur propre) """
-        return fonct_Affichage(self, mot_clef, colormap, vp)
+        
+        fonct_Affichage(self, mot_clef, colormap, vp)
     
 
 
