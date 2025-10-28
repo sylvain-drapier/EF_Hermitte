@@ -221,7 +221,9 @@ def calcul_fe(C, S, le, px, py ):
     
     .. attribute :: fe : np.array(6)
     """
-    return (le/2) * np.array([px*C-py*S, -px*S+py*C, py*le/6, px*C-py*S, -px*S+py*C, -py*le/6])
+    # return (le/2) * np.array([px*C-py*S, -px*S+py*C, py*le/6, px*C-py*S, -px*S+py*C, -py*le/6])
+    # SD, 28/10/2025: f_e(g)=R*f_e(l) et pas R^T*f_e(l) => f_e/x1=C*px-S*py, f_e/x2=S*px+S*py 
+    return (le/2) * np.array([px*C-py*S, px*S+py*C, py*le/6, px*C-py*S, px*S+py*C, -py*le/6])
 
 def calcul_kg(C, S, le, Effort_N):
     """ Calcul la matrice de rigidité géométrique élémentaire dans le repère de structure et met à jour avec l'effort normal sur les composantes 1,2 et 4,5.
