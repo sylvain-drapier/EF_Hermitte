@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Novembre 2024
+Novembre 2025 
 
 @author: Sylvain Drapier
+
+Ajouts ./ version de mars 2025 :
+================================
+    - chargements répartis définis aux noeuds
+    - calcul effort tranchant (-dM/dx)
 
 
 Classes et utilitaires pour résolution statique + charges de flambage + modes vibration avec des EF d'Hermitte en 2D 
@@ -15,7 +20,7 @@ Classes et utilitaires pour résolution statique + charges de flambage + modes v
 
 - propriétés variables par élément
 - ajout/retrait d'éléments
-- affichage des résultats : u (dép),e (memb),k (courbure), N (eff normal), M (moment), 
+- affichage des résultats : u (dép),e (memb),k (courbure), N (eff normal), T (eff tranchant), M (moment), 
     
 :Partie 0: Initialisation des grandeurs physiques du problème
 
@@ -39,13 +44,14 @@ Classes et utilitaires pour résolution statique + charges de flambage + modes v
     - x et y : coordonnées
     - u et v, u1 et u2, theta: degrés de liberté dans les axes locaux et dans les axes structure
     - position : indice dans la liste 'nodes_global' des noeuds construite initialement
+    - px, py : efforts répartis définis au noeuds (0 sinon)
     
 - **Classe Elem** = Eléments contenant :
     - numero
     - inode1 et inode2 : numéro des noeuds : ATTENTION l'orientation de l'élément dépend de l'ordre des noeuds
     - angle et longueur : caractéristiques géométriques
     - ES, EI, Smasse : caractéristiques physiques
-    - px et py : chargements linéiques orientés dans le REPERE LOCAL de la poutre (orientation !)
+    - px et py : chargements linéiques orientés dans le REPERE LOCAL de la poutre (orientation !); 0 si définis aux noeuds
     - grandeurs élémentaires (raideur initiale, raideur géométrique, masse, seconds membres)
     
     *Méthodes* = construction d'un élément avec calcul de ses grandeurs; mises à jour si changement propriétés et/ou pré-charge flambage, destruction
@@ -166,24 +172,29 @@ class Node:
     .. attribute:: theta : float 
     
         ddl rotation    
+    .. attribute:: px, py : float 
+  
+        px, py : efforts répartis définis au noeuds (0 sinon)         
 
     .. attribute:: position : int 
     
-        position du noeud dans la liste des noeuds - utile pour accès aux ddls         
+        position du noeud dans la liste des noeuds - utile pour accès aux ddls
     """
-    def __init__(self, numero, position, x1, x2, u=0, v=0, u1=0, u2=0, theta=0):
+    def __init__(self, numero, position, x1, x2, u=0, v=0, u1=0, u2=0, theta=0, px=0, py=0):
         self.numero = numero
         self.position = position
         self.x1 = x1
         self.x2 = x2
-        self.u = u # dans le repère local       
+        self.u = u # dans le repère local de la poutre     
         self.v = v 
-        self.u1 = u1
+        self.u1 = u1 # dans le repère globa  
         self.u2 = u2      
         self.theta = theta
+        self.px = px
+        self.py = py
 
     def __str__(self):
-        return f"Noeud {self.numero}, x1 = {self.x1:2f}, x2 = {self.x2:2f}, \n u = {self.u:2f}, v = {self.v:2f}, \n u1 = {self.u1:2f}, u2 = {self.u2:2f}, \n theta = {self.theta} \n position = {self.position}"
+        return f"Noeud {self.numero}, x1 = {self.x1:2f}, x2 = {self.x2:2f}, \n u = {self.u:2f}, v = {self.v:2f}, \n u1 = {self.u1:2f}, u2 = {self.u2:2f}, \n theta = {self.theta} \n ,\n px = {self.px}, \n py = {self.py} \n, position = {self.position}"
 
 
 def Renvoi_index_node(n_node, liste):
@@ -224,6 +235,20 @@ def calcul_fe(C, S, le, px, py ):
     # return (le/2) * np.array([px*C-py*S, -px*S+py*C, py*le/6, px*C-py*S, -px*S+py*C, -py*le/6])
     # SD, 28/10/2025: f_e(g)=R*f_e(l) et pas R^T*f_e(l) => f_e/x1=C*px-S*py, f_e/x2=S*px+S*py 
     return (le/2) * np.array([px*C-py*S, px*S+py*C, py*le/6, px*C-py*S, px*S+py*C, -py*le/6])
+
+# SD : calcul second membre avec effort répartis définis aux noeuds (px1,px2) et (py1,py2)
+def calcul_fe_nodes(C, S, le, px1, px2, py1, py2 ):
+    """ Second membre des efforts répartis définis aux noeuds de l'élément, recalculé avec changement de base 
+    
+    .. attribute :: fe : np.array(6)
+    """
+    return (le/2) * np.array(
+        [C * ((2/3) * px1 + (1/3) * px2) - S * ((7/10)*py1 + (3/10) * py2),
+         S * ((2/3) * px1 + (1/3) * px2) + C * ((7/10)*py1 + (3/10) * py2),
+         le * (py1/10 + py2/15), 
+         C * ((1/3) * px1 + (2/3) * px2) - S * ((3/10)*py1 + (7/10) * py2),
+         S * ((1/3) * px1 + (2/3) * px2) + C * ((3/10)*py1 + (7/10) * py2),
+         -le * (py1/15 + py2/10) ] )
 
 def calcul_kg(C, S, le, Effort_N):
     """ Calcul la matrice de rigidité géométrique élémentaire dans le repère de structure et met à jour avec l'effort normal sur les composantes 1,2 et 4,5.
@@ -279,7 +304,7 @@ class Elem:
         contient dans l'ordre ES, EI, Smasse (masse section)
     .. attribute:: px_py : np.array(2) 
     
-        efforts linéiques longitudinal et transverse   
+        efforts linéiques, longitudinal et transverse ; si nuls, alors on teste si efforts répartis définis aux noeuds  
     .. attribute:: nodes_global : list 
     
         list contenant les noeuds du problème global (création des noeuds)        
@@ -289,6 +314,10 @@ class Elem:
     .. attribute:: le : float [= 0]
     
         longueur élémentaire   
+        
+    .. attribute:: masse_elem : float [= 0]
+        
+        masse élémentaire      
     .. attribute:: kel_e : float 
     
         rigidité élastique élémentaire  
@@ -298,12 +327,12 @@ class Elem:
     .. attribute:: fe : np.array(6) [=[]]
     
         second membre élémentaire   
-    .. attribute:: def_eff : np.array(4) [=[]]
+    .. attribute:: def_eff : np.array(5) [=[]]
     
-        contient les déformations et les efforts de l'élément dans le repère local : [u',v'',N,M]   
+        contient les déformations et les efforts de l'élément dans le repère local : ['u',''v','N','T','M']   
        
     ''' 
-    def __init__(self, num_elem, inode1, inode2, meca_elem, px_py, nodes_global, angle=0,  le=0, kel_e=[], kg_e=[], f_e=[], M_e=[], def_eff=[]):     
+    def __init__(self, num_elem, inode1, inode2, meca_elem, px_py, nodes_global, angle=0,  le=0, masse_elem=0, kel_e=[], kg_e=[], f_e=[], M_e=[], def_eff=[]):     
         self.num_elem = num_elem
         ES = self.ES = meca_elem[0]
         EI = self.EI = meca_elem[1]
@@ -317,7 +346,7 @@ class Elem:
         self.kg_e = kg_e
         self.f_e = f_e
         self.M_e = M_e        
-        self.def_eff = np.zeros(4)  # e, K, N, M      
+        self.def_eff = np.zeros(5)  # e, K, N, T, M      
  
         # Récupère les 2 objets Node dont les numéros sont connus
         self.node1 = nodes_global[Renvoi_index_node(inode1, nodes_global)]
@@ -329,14 +358,15 @@ class Elem:
         x2_1 = self.node2.x1
         x2_2 = self.node2.x2       
         le = self.le = np.sqrt( (x2_1 - x1_1)**2 + (x2_2 - x1_2)**2 )
+        self.masse_elem = self.Smasse * le
 
         
         # Précautions à prendre sur l'angle, il définit l'orientation de la poutre
-        #      |\     n
-        #        \  n   
+        #      |\
+        #        \     
         #         +    ^ x2
-        #          t   |
-        #           t  | 
+        #      n   t   |
+        #     n     t  | 
         #            t |
         #             \|
         #              +-----------> x1
@@ -381,7 +411,14 @@ class Elem:
         beta = EI / le**3
         
         self.kel_e = calcul_kel(alpha, beta, self.C, self.S, le )
-        self.f_e = calcul_fe(self.C, self.S, le, self.px, self.py )
+        # SD : 2 façons de calculer le second membre : (px,py) par élément, ou (px,py) aux noeuds 
+        if (px_py[0] != 0 or px_py[1] != 0) :
+            self.f_e = calcul_fe(self.C, self.S, le, self.px, self.py )
+        elif (self.node1.px != 0 or self.node2.px != 0 or self.node1.py != 0 or self.node2.py!= 0):
+            self.f_e = calcul_fe_nodes(self.C, self.S, le, self.node1.px, self.node2.px, self.node1.py, self.node2.py )
+        else :
+            self.f_e = np.zeros(6)
+            
         self.kg_e = calcul_kg(self.C, self.S, le, self.def_eff[2])
         self.M_e = calcul_M(self.Smasse,self.C, self.S, le)
 
@@ -989,12 +1026,20 @@ Pour tous les éléments, calcul les déformations et contraintes généralisée
         # Npp[0] = (6/le**2)*(-1 +2*alpha1 )  # au centre : 0
         # Npp[1] = (2/le)*(-2 + 3*alpha1 )    # au centre : -1/le
         # Npp[2] = -(6/le**2)*(1 + 2*alpha2 ) # au centre : 0
-        # Npp[3] = (2/le)*(2 + 3*alpha2 )     # au centre : 1/le      
+        # Npp[3] = (2/le)*(2 + 3*alpha2 )     # au centre : 1/le 
+        
+        # SD, 29/10/2025 : pour calculer l'effort tranchant, on peut calculer T(x)=-EI*d^3v/dx^3
+        # T(x^h)= -EI*(2/le)^3*(3/2)*((le/2)*(theta1+theta2) + (v1-v2))
         elem_global[ind_elem].def_eff[0] = (1/le)*( Elem_temp.node2.u - Elem_temp.node1.u )
         elem_global[ind_elem].def_eff[1] = (1/le)*( Elem_temp.node2.theta - Elem_temp.node1.theta )  
         elem_global[ind_elem].def_eff[2] = elem_global[ind_elem].def_eff[0] * Elem_temp.ES
-        elem_global[ind_elem].def_eff[3] = elem_global[ind_elem].def_eff[1] * Elem_temp.EI
-        # print("EffInt[",ind_elem,"]", Eff_int[ind_elem])
+        elem_global[ind_elem].def_eff[4] = elem_global[ind_elem].def_eff[1] * Elem_temp.EI
+# SD : vérifier les calculs pour T(x)
+        elem_global[ind_elem].def_eff[3] = -(2/le)**3*(3/2) * ( 
+            (le/2) * (Elem_temp.node2.theta + Elem_temp.node1.theta) 
+            + ( Elem_temp.node1.v - Elem_temp.node2.v )) * Elem_temp.EI
+
+        print("EffInt[",ind_elem,"]", elem_global[ind_elem].def_eff)
         
     return  
 
@@ -1024,6 +1069,7 @@ pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (p
 - 'e': déformation
 - 'K' : courbure
 - 'N' : effort normal
+- 'T' : effort tranchant
 - 'M' : moment de flexion
 - 'ES' : rigidité de membrane
 - 'EI' : rigidité de flexion
@@ -1045,14 +1091,15 @@ pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (p
     elem_global = pbEF.elem_global
         
     affiche = {'u': [100, 'Ampl. Déplacement [m]'],
-               'X': [100, 'Mode Adim embrane [-]'],
+               'X': [100, 'Mode Adim [-]'],
                'e': [0, 'Déformation normales [-]'],               
                'K': [1, 'Courbures [m^-1]'],
                'N': [2, 'Efforts Normaux [N]'],
-               'M': [3, 'Moments [N.m]'],
-               'ES': [4, 'Rigidité <ES> [N]'],
-               'EI': [5, 'Rigidité <EI> [N.m^2]'],
-               'Smasse': [6, 'Masse linéique [kg.m^(-1)]']               
+               'T': [3, 'Efforts Tranchants [N]'],
+               'M': [4, 'Moments [N.m]'],
+               'ES': [5, 'Rigidité <ES> [N]'],
+               'EI': [6, 'Rigidité <EI> [N.m^2]'],
+               'Smasse': [7, 'Masse linéique [kg.m^(-1)]']               
                }
     RHST = F_tot
     
@@ -1135,11 +1182,11 @@ pour ne pas gérer les éléments spéciaux -> les noeuds sont tracés 2 fois (p
                                  elem_temp.node2.x1 + elem_temp.node2.u1*amplification_def))
             x2_elem.append( (1/2) * (elem_temp.node1.x2 + elem_temp.node2.u2*amplification_def + \
                                  elem_temp.node2.x2 + elem_temp.node2.u2*amplification_def))
-            if ind_vecteur_affiche < 4 :
+            if ind_vecteur_affiche < 5 :
                 vecteur_affiche[indice] = elem_temp.def_eff[ind_vecteur_affiche]              
-            elif ind_vecteur_affiche == 4:
-                vecteur_affiche[indice] = elem_temp.ES
             elif ind_vecteur_affiche == 5:
+                vecteur_affiche[indice] = elem_temp.ES
+            elif ind_vecteur_affiche == 6:
                 vecteur_affiche[indice] = elem_temp.EI
             else :
                 vecteur_affiche[indice] = elem_temp.Smasse  
@@ -1373,8 +1420,7 @@ class pbEF_poutre:
     1. initialisation (maillage et assemblage), 
     2. prise en compte des CL Neumann et Dirichlet (homgènes et non-homogènes), 
     3. résolution,
-    4. calculs déformations et efforts internes : utilise fonction 'Calcul_Def_Eff' définie dans 'BWB_Classes.py'
-    5. affichage = utilise fonction 'Affichage' définie dans 'BWB_Classes.py'
+    4. calculs déformations et efforts internes : utilise fonction 'Calcul_Def_Eff'
     6. mise à jour raideur suite à mise à jour des propriétés physiques d'un élément
     
 *Remarque 1:* la discrétisation spatiale et les conditions aux limites ne changent pas pour une instance pbEF; le maillage EF peut changer !
