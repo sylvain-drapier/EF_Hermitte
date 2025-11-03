@@ -44,7 +44,7 @@ Classes et utilitaires pour résolution statique + charges de flambage + modes v
     - x et y : coordonnées
     - u et v, u1 et u2, theta: degrés de liberté dans les axes locaux et dans les axes structure
     - position : indice dans la liste 'nodes_global' des noeuds construite initialement
-    - px, py : efforts répartis définis au noeuds (0 sinon)
+    - px, py : efforts répartis définis aux noeuds (0 sinon)
     
 - **Classe Elem** = Eléments contenant :
     - numero
@@ -156,7 +156,7 @@ import sys
 =================================================================================
 """
 
-"""Définition de la classe Node : numéro, coordonnées, inconnues cinématiques, position dans la liste"""
+"""Définition de la classe Node : numéro, coordonnées, inconnues cinématiques, chargements répartis, position dans la liste"""
 class Node:
     """    
     .. attribute:: numero : int
@@ -180,7 +180,7 @@ class Node:
     
         position du noeud dans la liste des noeuds - utile pour accès aux ddls
     """
-    def __init__(self, numero, position, x1, x2, u=0, v=0, u1=0, u2=0, theta=0, px=0, py=0):
+    def __init__(self, numero, position, x1, x2, px=0, py=0, u=0, v=0, u1=0, u2=0, theta=0):
         self.numero = numero
         self.position = position
         self.x1 = x1
@@ -190,11 +190,11 @@ class Node:
         self.u1 = u1 # dans le repère globa  
         self.u2 = u2      
         self.theta = theta
-        self.px = px
+        self.px = px # dans le repère de la poutre
         self.py = py
 
     def __str__(self):
-        return f"Noeud {self.numero}, x1 = {self.x1:2f}, x2 = {self.x2:2f}, \n u = {self.u:2f}, v = {self.v:2f}, \n u1 = {self.u1:2f}, u2 = {self.u2:2f}, \n theta = {self.theta} \n ,\n px = {self.px}, \n py = {self.py} \n, position = {self.position}"
+        return f"Noeud {self.numero}, x1 = {self.x1:2f}, x2 = {self.x2:2f}, \n px = {self.px}, py = {self.py}, \n u = {self.u:2f}, v = {self.v:2f}, \n u1 = {self.u1:2f}, u2 = {self.u2:2f}, \n theta = {self.theta}, \n position = {self.position}"
 
 
 def Renvoi_index_node(n_node, liste):
@@ -228,7 +228,7 @@ def calcul_kel(alpha, beta, C, S, le):
     return kel_elem
     
 def calcul_fe(C, S, le, px, py ):
-    """ Second membre des efforts répartis recalculé avec changement de base 
+    """ Second membre des efforts répartis (définis dans repère local) recalculé avec changement de base dans repère de structure 
     
     .. attribute :: fe : np.array(6)
     """
@@ -236,12 +236,18 @@ def calcul_fe(C, S, le, px, py ):
     # SD, 28/10/2025: f_e(g)=R*f_e(l) et pas R^T*f_e(l) => f_e/x1=C*px-S*py, f_e/x2=S*px+S*py 
     return (le/2) * np.array([px*C-py*S, px*S+py*C, py*le/6, px*C-py*S, px*S+py*C, -py*le/6])
 
-# SD : calcul second membre avec effort répartis définis aux noeuds (px1,px2) et (py1,py2)
-def calcul_fe_nodes(C, S, le, px1, px2, py1, py2 ):
-    """ Second membre des efforts répartis définis aux noeuds de l'élément, recalculé avec changement de base 
+# SD 31/10/2025 : calcul second membre avec effort répartis définis aux noeuds pxpy = px1,py1,px2,py2
+def calcul_fe_nodes(C, S, le, pxpy ):
+    """ Second membre des efforts répartis définis aux noeuds de l'élément dans le repère local, recalculé avec changement de base dans repère de structure
     
     .. attribute :: fe : np.array(6)
     """
+    # SD 31/10/2025 : si définis dans repère local
+    px1 = pxpy[0]
+    py1 = pxpy[1]
+    px2 = pxpy[2]
+    py2 = pxpy[3]
+    
     return (le/2) * np.array(
         [C * ((2/3) * px1 + (1/3) * px2) - S * ((7/10)*py1 + (3/10) * py2),
          S * ((2/3) * px1 + (1/3) * px2) + C * ((7/10)*py1 + (3/10) * py2),
@@ -304,7 +310,7 @@ class Elem:
         contient dans l'ordre ES, EI, Smasse (masse section)
     .. attribute:: px_py : np.array(2) 
     
-        efforts linéiques, longitudinal et transverse ; si nuls, alors on teste si efforts répartis définis aux noeuds  
+        efforts linéiques, longitudinal et transverse ; si nuls, alors on teste si efforts répartis définis aux noeuds (dans repère de structure) 
     .. attribute:: nodes_global : list 
     
         list contenant les noeuds du problème global (création des noeuds)        
@@ -339,6 +345,7 @@ class Elem:
         self.Smasse = meca_elem[2]
         self.px = px_py[0]
         self.py = px_py[1]
+
       
         self.angle = angle  
         self.le = le
@@ -351,6 +358,8 @@ class Elem:
         # Récupère les 2 objets Node dont les numéros sont connus
         self.node1 = nodes_global[Renvoi_index_node(inode1, nodes_global)]
         self.node2 = nodes_global[Renvoi_index_node(inode2, nodes_global)]
+        p1p2 = np.array([self.node1.px , self.node1.py , self.node2.px , self.node2.py ])
+
         
         # Calculer la longueur et l'angle des éléments connaissant les noeuds
         x1_1 = self.node1.x1
@@ -411,11 +420,16 @@ class Elem:
         beta = EI / le**3
         
         self.kel_e = calcul_kel(alpha, beta, self.C, self.S, le )
-        # SD : 2 façons de calculer le second membre : (px,py) par élément, ou (px,py) aux noeuds 
+        # SD : 2 façons de calculer le second membre à partir des efforts dans le repère local : 
+        # (px,py) par élément ou (px_i,py_i) aux noeuds à projeter dans le repère llobal
         if (px_py[0] != 0 or px_py[1] != 0) :
             self.f_e = calcul_fe(self.C, self.S, le, self.px, self.py )
-        elif (self.node1.px != 0 or self.node2.px != 0 or self.node1.py != 0 or self.node2.py!= 0):
-            self.f_e = calcul_fe_nodes(self.C, self.S, le, self.node1.px, self.node2.px, self.node1.py, self.node2.py )
+        elif np.count_nonzero(p1p2) > 0: # A VERIFIER
+            # projection dans repère global
+            pxpy = np.array([self.C*p1p2[0] + self.S*p1p2[1], self.C*p1p2[1] - self.S*p1p2[0],
+                             self.C*p1p2[2] + self.S*p1p2[3], self.C*p1p2[3] - self.S*p1p2[2]
+                             ])
+            self.f_e = calcul_fe_nodes(self.C, self.S, le, pxpy )
         else :
             self.f_e = np.zeros(6)
             
@@ -442,7 +456,7 @@ class Elem:
 
         
     def __str__(self):
-        return f"Elément{self.num_elem} \n {self.node1} \n {self.node2} \n \n angle = {self.angle*180/np.pi} degrès, \n longueur = {self.le}, ES = {self.ES}, EI = {self.EI}, Smasse = {self.Smasse}, \n px = {self.px}, py = {self.py}, "
+        return f"Elément{self.num_elem} \n {self.node1} \n {self.node2} \n \n angle = {self.angle*180/np.pi} degrès, \n longueur = {self.le}, \n ES = {self.ES}, EI = {self.EI}, \n Smasse = {self.Smasse}, \n px_const = {self.px}, py_const = {self.py} "
 
 
 """
@@ -512,12 +526,12 @@ def Renvoi_index_elem(n_elem, liste):
 - Initialisation des noeuds et des connectivités depuis des fichiers textes
 - Création des éléments dans elem_global et assemblage des rigidités et efforts répartiss 
     entrée : numéro d'élément, noeud1, noeud 2, liste éléments globale, propriétés méca, charge répartie, liste globale de noeuds
-    sortie : efforts répartis et rigidités élastique et géométrique
+    sortie : second membre des efforts répartis et rigidités élastique et géométrique
 """
 
 def fonct_Maille_depuis_Fichier(nomfic_noeuds, nomfic_elements):
     """
-Initialise les listes de données pour une sructure réticulée à partir de fichiers contenant les noeuds (3 colonnes : num_noeud, x, y) et 
+Initialise les listes de données pour une sructure réticulée à partir de fichiers contenant les noeuds (3 colonnes ou 5 colonnes : num_noeud, x, y + éventuellement px, py dans le repère local) et 
 les connectivités (3 colonnes : num_elem, noeud1, noeud2)
 
 *Retourne :* la liste des noeuds 'nodes_global' et la connectivité des éléments 'nodes_elem'
@@ -537,11 +551,15 @@ les connectivités (3 colonnes : num_elem, noeud1, noeud2)
                 if ligne.strip() and not ligne.strip().startswith('#'):
                     ipos_node += 1
                     valeurs = ligne.strip().split(',')
-                    if len(valeurs) != 3:
-                        raise ValueError("Ligne",ligne," mal formatée")
-                    else : 
+                    if len(valeurs) == 3:
                         nodes_global.append(Node(int(valeurs[0]), ipos_node-1, float(valeurs[1]), float(valeurs[2])))    
                         liste_nodes_temp.append(int(valeurs[0]))
+                    elif len(valeurs) == 5 :
+                        nodes_global.append(Node(int(valeurs[0]), ipos_node-1, float(valeurs[1]), float(valeurs[2]), 
+                                                 float(valeurs[3]), float(valeurs[4])))    
+                        liste_nodes_temp.append(int(valeurs[0]))
+                    else :    
+                        raise ValueError("Ligne",ligne," mal formatée")
     
     except ValueError as e:
         print(f"Erreur dans le fichier : {e}")
@@ -652,7 +670,7 @@ Création d'un élement et intégration de sa raideur élastique, sa matrice de 
 def Modif_Proprietes_Elem (pbEF, num_elem, ES_el, EI_el, Smasse_el):
     """
 Met à jour la rigidité élastique GLOBALE quand les 
-propriétés méca ES, EI ou Smasse d'un élément changent
+propriétés méca ES, EI ou Smasse d'un élément changent (chargements répartis et CL réputés invariables)
 
 * *Remarque 1* : On ne met pas à jour la rigidité géométrique qui sera mise à jour de toute façon quand les pré-contraintes auront été recalculées - cf fonction MAJ_rigidite_geometrique
 
@@ -1039,7 +1057,7 @@ Pour tous les éléments, calcul les déformations et contraintes généralisée
             (le/2) * (Elem_temp.node2.theta + Elem_temp.node1.theta) 
             + ( Elem_temp.node1.v - Elem_temp.node2.v )) * Elem_temp.EI
 
-        print("EffInt[",ind_elem,"]", elem_global[ind_elem].def_eff)
+        # print("EffInt[",ind_elem,"]", elem_global[ind_elem].def_eff)
         
     return  
 

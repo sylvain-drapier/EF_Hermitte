@@ -1,0 +1,16 @@
+### GEOM & LOADS - GEN-EE
+
+# Format: node_ID, node_y, node_z, node_Fy, node_Fz
+# Units: None, mm, mm, N, N
+
+# Extrados
+1,  101,  102
+2,  102,  103
+
+# Intrados
+101,  201,  202
+102,  202,  203
+
+# connections
+201, 101, 201
+202, 103, 203
